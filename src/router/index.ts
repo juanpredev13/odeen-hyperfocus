@@ -1,9 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { getSession } from '@/modules/auth/services/auth.service'
+import AppLayout from '@/app/AppLayout.vue'
 
 const routes: RouteRecordRaw[] = [
-  // Auth routes (public)
+  // Auth routes (public, no nav)
   {
     path: '/login',
     name: 'login',
@@ -17,16 +18,22 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
 
-  // Protected routes
+  // Protected routes (with nav layout)
   {
     path: '/',
-    name: 'home',
-    component: () => import('@/modules/projects/views/HomeView.vue'),
-  },
-  {
-    path: '/design-system',
-    name: 'design-system',
-    component: () => import('@/modules/projects/views/DesignSystemView.vue'),
+    component: AppLayout,
+    children: [
+      {
+        path: '',
+        name: 'home',
+        component: () => import('@/modules/projects/views/HomeView.vue'),
+      },
+      {
+        path: 'design-system',
+        name: 'design-system',
+        component: () => import('@/modules/projects/views/DesignSystemView.vue'),
+      },
+    ],
   },
 ]
 
