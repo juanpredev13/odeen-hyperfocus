@@ -83,6 +83,7 @@ Shared code goes in `src/services/`, `src/composables/`, or `src/store/`.
 Four tables: `profiles`, `projects`, `tasks`, `task_connections`. See `docs/requirements.md` Section 4 for full schema.
 
 Key constraints:
+
 - All IDs are UUIDs
 - `tasks.status` is enum: `todo | doing | done`
 - `tasks.energy_level` range: 1–3
@@ -106,18 +107,18 @@ All commit messages must follow [Conventional Commits](https://www.conventionalc
 <type>[optional scope]: <description>
 ```
 
-| Type       | When to use                                      |
-|------------|--------------------------------------------------|
-| `feat`     | A new feature                                    |
-| `fix`      | A bug fix                                        |
-| `docs`     | Documentation only changes                       |
-| `style`    | CSS, formatting, missing semicolons (no logic)   |
-| `refactor` | Code change that neither fixes nor adds          |
-| `perf`     | Performance improvement                          |
-| `test`     | Adding or correcting tests                       |
-| `build`    | Build system or external dependencies            |
-| `ci`       | CI configuration                                 |
-| `chore`    | Maintenance tasks, tooling, configs              |
+| Type       | When to use                                    |
+| ---------- | ---------------------------------------------- |
+| `feat`     | A new feature                                  |
+| `fix`      | A bug fix                                      |
+| `docs`     | Documentation only changes                     |
+| `style`    | CSS, formatting, missing semicolons (no logic) |
+| `refactor` | Code change that neither fixes nor adds        |
+| `perf`     | Performance improvement                        |
+| `test`     | Adding or correcting tests                     |
+| `build`    | Build system or external dependencies          |
+| `ci`       | CI configuration                               |
+| `chore`    | Maintenance tasks, tooling, configs            |
 
 Scopes: `auth`, `projects`, `tasks`, `kanban`, `graph`, `focus`, `ui`, `db`.
 
