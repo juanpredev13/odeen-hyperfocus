@@ -232,16 +232,25 @@ src/
 ## BEM Naming Example
 
 ```css
-.task-card {}
-.task-card__title {}
-.task-card__meta {}
-.task-card--active {}
-.task-card--completed {}
+.task-card {
+}
+.task-card__title {
+}
+.task-card__meta {
+}
+.task-card--active {
+}
+.task-card--completed {
+}
 
-.kanban {}
-.kanban__column {}
-.kanban__card {}
-.kanban__card--dragging {}
+.kanban {
+}
+.kanban__column {
+}
+.kanban__card {
+}
+.kanban__card--dragging {
+}
 ```
 
 ---
@@ -280,14 +289,14 @@ The POC is successful if:
 
 > Paste Figma links below for each module. These serve as the visual source of truth for implementation.
 
-| Module         | Figma Link |
-|----------------|------------|
-| Auth           | _pending_  |
-| Projects       | _pending_  |
-| Kanban Board   | _pending_  |
-| Graph View     | _pending_  |
-| Focus Mode     | _pending_  |
-| UI System      | _pending_  |
+| Module       | Figma Link |
+| ------------ | ---------- |
+| Auth         | _pending_  |
+| Projects     | _pending_  |
+| Kanban Board | _pending_  |
+| Graph View   | _pending_  |
+| Focus Mode   | _pending_  |
+| UI System    | _pending_  |
 
 ---
 
