@@ -140,6 +140,41 @@ Breaking changes: append `!` after type/scope — `feat(db)!: rename status enum
 - Never commit `.env`, credentials, or Supabase keys
 - Reference issue numbers when applicable (`#1`, `#2`, etc.)
 
+## Pull Request Template
+
+All PRs must use this template. Fill in every applicable section.
+
+- **Features/fixes** → Target: `main`
+
+```markdown
+# <TYPE>: <Short summary of the change>
+
+## Description
+
+Clearly explain what changed. Provide enough context for someone who did not work on the change to understand it quickly.
+
+## Why?
+
+Justify the change: the problem it solves, user impact, data or feedback.
+
+## Screenshots (Before & After)
+
+| Before | After |
+|--------|-------|
+| <img width="..." height="..." alt="before" src="..." /> | <img width="..." height="..." alt="after" src="..." /> |
+
+## How to test
+
+- Steps to reproduce/verify the change
+- URLs/roles if applicable
+- Edge cases to check
+
+## Branch Information
+
+- **Source Branch:** `feature-branch-name` / `hotfix-branch-name`
+- **Target Branch:** `main`
+```
+
 ## Security
 
 - Never commit `.env` or Supabase service keys
