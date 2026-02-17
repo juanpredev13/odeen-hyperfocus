@@ -26,7 +26,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'home',
-        component: () => import('@/modules/projects/views/HomeView.vue'),
+        component: () => import('@/modules/projects/views/ProjectsView.vue'),
       },
       {
         path: 'design-system',
