@@ -29,6 +29,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/projects/views/ProjectsView.vue'),
       },
       {
+        path: 'tasks',
+        name: 'tasks',
+        component: () => import('@/modules/tasks/views/TasksView.vue'),
+      },
+      {
         path: 'design-system',
         name: 'design-system',
         component: () => import('@/modules/projects/views/DesignSystemView.vue'),
