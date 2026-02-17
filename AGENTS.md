@@ -1,12 +1,8 @@
-# ODEEN — Agent Rules
-
-## Project
+# ODEEN — Hyperfocus
 
 ODEEN is a minimalist deep work operating system. POC phase only — no AI, analytics, collaboration, or advanced metrics.
 
 Full spec: `docs/requirements.md`
-
----
 
 ## Tech Stack
 
@@ -14,12 +10,18 @@ Full spec: `docs/requirements.md`
 - **Backend:** Supabase (Auth, PostgreSQL, RLS)
 - **Styling:** CSS3 only — no Tailwind, no utility frameworks
 - **Methodology:** BEM naming convention
+- **Package manager:** pnpm
 
----
+## Setup
 
-## Architecture Rules
+```bash
+pnpm install
+pnpm dev
+pnpm build
+pnpm lint
+```
 
-### Module Structure
+## Architecture
 
 All feature code lives inside `src/modules/{module}/`. Each module is self-contained:
 
@@ -47,9 +49,9 @@ Shared code goes in `src/services/`, `src/composables/`, or `src/store/`.
 - Use path aliases (`@/modules/...`, `@/services/...`)
 - Never use relative imports that go up more than one level (`../../`)
 
----
+## Code Style
 
-## TypeScript Rules
+### TypeScript
 
 - Strict mode is mandatory
 - Never use `any` — use `unknown` and narrow, or define proper types
@@ -57,9 +59,7 @@ Shared code goes in `src/services/`, `src/composables/`, or `src/store/`.
 - Interfaces for data models go in `types/` inside each module
 - Shared types go in `src/types/`
 
----
-
-## CSS / BEM Rules
+### CSS / BEM
 
 - One scoped `<style>` block per component
 - BEM naming: `.block`, `.block__element`, `.block--modifier`
@@ -71,16 +71,12 @@ Shared code goes in `src/services/`, `src/composables/`, or `src/store/`.
   - Minimal shadows, no gradients, no heavy color accents
 - Global variables defined in `src/styles/`
 
----
-
-## Supabase Rules
+## Supabase
 
 - All database calls go through service files (`src/services/` or `module/services/`)
 - Never call Supabase directly from components or views
 - Always handle errors — return typed results, never swallow errors silently
 - RLS is enabled on all tables — never bypass it
-
----
 
 ## Database Schema (POC)
 
@@ -94,9 +90,7 @@ Key constraints:
 - `tasks.position_x` and `position_y` are nullable (only used in graph view)
 - Max 3 tasks in `doing` status per project (enforced in UI)
 
----
-
-## Performance Rules
+## Performance
 
 - Lazy load all route views
 - Code split per route
@@ -104,23 +98,13 @@ Key constraints:
 - Avoid unnecessary re-renders — use `computed` and `shallowRef` where appropriate
 - Keep drag interactions under 16ms frame budget
 
----
+## Commits
 
-## Git Rules
-
-### Conventional Commits
-
-All commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification:
+All commit messages must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 
 ```
 <type>[optional scope]: <description>
-
-[optional body]
-
-[optional footer(s)]
 ```
-
-### Types
 
 | Type       | When to use                                      |
 |------------|--------------------------------------------------|
@@ -128,18 +112,14 @@ All commit messages must follow the [Conventional Commits](https://www.conventio
 | `fix`      | A bug fix                                        |
 | `docs`     | Documentation only changes                       |
 | `style`    | CSS, formatting, missing semicolons (no logic)   |
-| `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `refactor` | Code change that neither fixes nor adds          |
 | `perf`     | Performance improvement                          |
 | `test`     | Adding or correcting tests                       |
 | `build`    | Build system or external dependencies            |
 | `ci`       | CI configuration                                 |
 | `chore`    | Maintenance tasks, tooling, configs              |
 
-### Scopes
-
-Use module names as scopes: `auth`, `projects`, `tasks`, `kanban`, `graph`, `focus`, `ui`, `db`.
-
-### Examples
+Scopes: `auth`, `projects`, `tasks`, `kanban`, `graph`, `focus`, `ui`, `db`.
 
 ```
 feat(kanban): add drag-and-drop between columns
@@ -150,29 +130,29 @@ refactor(tasks): extract service layer from component
 chore: configure ESLint and Prettier
 ```
 
-### Breaking Changes
-
-Append `!` after the type/scope or add `BREAKING CHANGE:` in the footer:
-
-```
-feat(db)!: rename status enum values
-```
+Breaking changes: append `!` after type/scope — `feat(db)!: rename status enum values`
 
 ### General
 
 - Branch from `main`
 - One concern per commit
 - Never commit `.env`, credentials, or Supabase keys
-- Reference issue numbers in commits when applicable (`#1`, `#2`, etc.)
+- Reference issue numbers when applicable (`#1`, `#2`, etc.)
 
----
+## Security
 
-## What NOT to Do
+- Never commit `.env` or Supabase service keys
+- RLS must be enabled on every table
+- Auth tokens handled exclusively through Supabase Auth SDK
+- Validate all user input at the service layer
 
-- Do not add Tailwind or any CSS utility framework
-- Do not use Options API — Composition API only
-- Do not put business logic in components
-- Do not create files outside the defined module structure
-- Do not add features outside POC scope (see `docs/requirements.md` Section 8)
-- Do not use `any`
-- Do not skip error handling on Supabase calls
+## Do NOT
+
+- Add Tailwind or any CSS utility framework
+- Use Options API — Composition API only
+- Put business logic in components
+- Create files outside the defined module structure
+- Add features outside POC scope (see `docs/requirements.md` Section 8)
+- Use `any`
+- Skip error handling on Supabase calls
+- Use npm or yarn — use pnpm
