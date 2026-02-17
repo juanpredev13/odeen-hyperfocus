@@ -78,6 +78,14 @@ Shared code goes in `src/services/`, `src/composables/`, or `src/store/`.
 - Always handle errors — return typed results, never swallow errors silently
 - RLS is enabled on all tables — never bypass it
 
+### Project Config
+
+- **Project ref:** `jpryskxhhoxphxfsbbux`
+- **Project URL:** `https://jpryskxhhoxphxfsbbux.supabase.co`
+- **CLI:** use `npx supabase` (not installed globally)
+- **Migrations:** `supabase/migrations/` — run with `npx supabase db push`
+- **Env vars:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` in `.env` (never commit `.env`)
+
 ## Database Schema (POC)
 
 Four tables: `profiles`, `projects`, `tasks`, `task_connections`. See `docs/requirements.md` Section 4 for full schema.
