@@ -15,6 +15,12 @@
             </RouterLink>
           </li>
           <li>
+            <RouterLink class="nav__link" to="/tasks">
+              <span class="material-symbols-outlined nav__link-icon">task_alt</span>
+              Tasks
+            </RouterLink>
+          </li>
+          <li>
             <RouterLink class="nav__link" to="/design-system">
               <span class="material-symbols-outlined nav__link-icon">palette</span>
               Design System
