@@ -27,6 +27,7 @@ pnpm-debug.log*
 
 # Vite
 *.local
+.vite/
 
 # TypeScript
 *.tsbuildinfo
