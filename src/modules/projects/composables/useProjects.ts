@@ -23,11 +23,6 @@ export function useProjects() {
     }
 
     projects.value = result.data ?? []
-
-    const first = projects.value[0]
-    if (!activeProject.value && first) {
-      setActiveProject(first)
-    }
   }
 
   async function createProject(name: string): Promise<boolean> {
