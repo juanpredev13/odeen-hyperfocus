@@ -18,6 +18,7 @@ export default tseslint.config(
         HTMLInputElement: 'readonly',
         HTMLTextAreaElement: 'readonly',
         HTMLSelectElement: 'readonly',
+        Event: 'readonly',
         requestAnimationFrame: 'readonly',
       },
     },
