@@ -15,30 +15,6 @@
     <h3 class="task-card__title">{{ task.title }}</h3>
     <p v-if="task.description" class="task-card__description">{{ task.description }}</p>
 
-    <div class="task-card__meta">
-      <div class="task-card__meta-item" :title="`Energy: ${task.energy_level}/3`">
-        <span class="material-symbols-outlined task-card__meta-icon">bolt</span>
-        <span class="task-card__meta-dots">
-          <span
-            v-for="i in 3"
-            :key="i"
-            class="task-card__dot"
-            :class="{ 'task-card__dot--active': i <= task.energy_level }"
-          ></span>
-        </span>
-      </div>
-      <div class="task-card__meta-item" :title="`Impact: ${task.impact_score}/5`">
-        <span class="material-symbols-outlined task-card__meta-icon">trending_up</span>
-        <span class="task-card__meta-dots">
-          <span
-            v-for="i in 5"
-            :key="i"
-            class="task-card__dot"
-            :class="{ 'task-card__dot--active': i <= task.impact_score }"
-          ></span>
-        </span>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -149,37 +125,4 @@ const statusLabel = computed(() => {
   line-height: var(--leading-relaxed);
 }
 
-.task-card__meta {
-  display: flex;
-  gap: var(--space-md);
-  padding-top: var(--space-xs);
-  border-top: var(--border-width) solid var(--border-color);
-}
-
-.task-card__meta-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.task-card__meta-icon {
-  font-size: 14px;
-  color: var(--color-gray-400);
-}
-
-.task-card__meta-dots {
-  display: flex;
-  gap: 3px;
-}
-
-.task-card__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background-color: var(--color-gray-200);
-}
-
-.task-card__dot--active {
-  background-color: var(--color-primary);
-}
 </style>

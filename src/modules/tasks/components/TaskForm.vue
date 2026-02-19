@@ -1,79 +1,67 @@
 <template>
-  <div class="task-form-overlay" @click.self="$emit('cancel')">
-    <div class="task-form">
-      <h2 class="task-form__title">{{ task ? 'Edit task' : 'New task' }}</h2>
+  <div class="modal-overlay" @click.self="$emit('cancel')" @keydown.esc="$emit('cancel')">
+    <div class="modal" role="dialog" aria-modal="true">
+      <!-- Close -->
+      <button class="modal__close" type="button" aria-label="Close" @click="$emit('cancel')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
 
-      <form @submit.prevent="handleSubmit">
-        <div class="task-form__field">
-          <label class="task-form__label" for="title">Title</label>
-          <input
-            id="title"
-            v-model="form.title"
-            class="task-form__input"
-            type="text"
-            required
-            autofocus
-          />
-        </div>
+      <form @submit.prevent="handleSubmit" @keydown.enter.exact.prevent="handleSubmit">
+        <div class="modal__body">
+          <!-- Label -->
+          <p class="modal__label">{{ task ? 'Edit Task' : 'New Task' }}</p>
 
-        <div class="task-form__field">
-          <label class="task-form__label" for="description">Description</label>
+          <!-- Title -->
+          <div class="modal__title-field">
+            <input
+              v-model="form.title"
+              class="modal__title-input"
+              type="text"
+              placeholder="What needs to be done?"
+              required
+              autofocus
+            />
+            <div class="modal__title-underline"></div>
+          </div>
+
+          <!-- Notes -->
           <textarea
-            id="description"
             v-model="form.description"
-            class="task-form__textarea"
+            class="modal__notes"
+            placeholder="Add optional notes..."
             rows="3"
           ></textarea>
-        </div>
 
-        <div class="task-form__row">
-          <div class="task-form__field">
-            <label class="task-form__label" for="status">Status</label>
-            <select id="status" v-model="form.status" class="task-form__select">
-              <option value="todo">To Do</option>
-              <option value="doing">Doing</option>
-              <option value="done">Done</option>
-            </select>
-          </div>
-
-          <div class="task-form__field">
-            <label class="task-form__label">Energy (1–3)</label>
-            <div class="task-form__dots">
-              <button
-                v-for="i in 3"
-                :key="i"
-                type="button"
-                class="task-form__dot-btn"
-                :class="{ 'task-form__dot-btn--active': i <= form.energy_level }"
-                @click="form.energy_level = i as EnergyLevel"
-              >{{ i }}</button>
+          <!-- Meta row -->
+          <div class="modal__meta">
+            <div class="modal__meta-field">
+              <label class="modal__meta-label" for="status">Status</label>
+              <select id="status" v-model="form.status" class="modal__select">
+                <option value="todo">To Do</option>
+                <option value="doing">Doing</option>
+                <option value="done">Done</option>
+              </select>
             </div>
           </div>
 
-          <div class="task-form__field">
-            <label class="task-form__label">Impact (1–5)</label>
-            <div class="task-form__dots">
-              <button
-                v-for="i in 5"
-                :key="i"
-                type="button"
-                class="task-form__dot-btn"
-                :class="{ 'task-form__dot-btn--active': i <= form.impact_score }"
-                @click="form.impact_score = i as ImpactScore"
-              >{{ i }}</button>
-            </div>
-          </div>
+          <p v-if="error" class="modal__error">{{ error }}</p>
         </div>
 
-        <p v-if="error" class="task-form__error">{{ error }}</p>
-
-        <div class="task-form__actions">
-          <button class="task-form__submit" type="submit" :disabled="loading">
-            {{ loading ? 'Saving…' : task ? 'Save changes' : 'Create task' }}
-          </button>
-          <button class="task-form__cancel" type="button" @click="$emit('cancel')">
-            Cancel
-          </button>
+        <!-- Footer -->
+        <div class="modal__footer">
+          <div class="modal__hint">
+            <kbd>ESC</kbd>
+            <span>to cancel</span>
+          </div>
+          <div class="modal__footer-right">
+            <div class="modal__hint modal__hint--hidden-sm">
+              <kbd>↵ ENTER</kbd>
+              <span>to save</span>
+            </div>
+            <button class="modal__submit" type="submit" :disabled="loading">
+              {{ loading ? 'Saving…' : task ? 'Save changes' : 'Create Task' }}
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -82,7 +70,7 @@
 
 <script setup lang="ts">
 import { reactive } from 'vue'
-import type { Task, TaskStatus, EnergyLevel, ImpactScore } from '@/modules/tasks/types'
+import type { Task, TaskStatus } from '@/modules/tasks/types'
 
 const props = defineProps<{
   task?: Task
@@ -96,8 +84,6 @@ const emit = defineEmits<{
     title: string
     description: string | null
     status: TaskStatus
-    energy_level: EnergyLevel
-    impact_score: ImpactScore
   }]
   cancel: []
 }>()
@@ -106,164 +92,251 @@ const form = reactive({
   title: props.task?.title ?? '',
   description: props.task?.description ?? '',
   status: (props.task?.status ?? 'todo') as TaskStatus,
-  energy_level: (props.task?.energy_level ?? 1) as EnergyLevel,
-  impact_score: (props.task?.impact_score ?? 1) as ImpactScore,
 })
 
 function handleSubmit(): void {
+  if (!form.title.trim()) return
   emit('submit', {
     title: form.title.trim(),
     description: form.description.trim() || null,
     status: form.status,
-    energy_level: form.energy_level,
-    impact_score: form.impact_score,
   })
 }
 </script>
 
 <style scoped>
-.task-form-overlay {
+/* ── Overlay ── */
+.modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  background: rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: var(--space-md);
 }
 
-.task-form {
-  background-color: var(--color-surface);
-  border: var(--border-width) solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl);
+/* ── Modal card ── */
+.modal {
+  position: relative;
   width: 100%;
   max-width: 520px;
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-}
-
-.task-form__title {
-  font-size: var(--font-size-h3);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-primary);
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.task-form__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.task-form__label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-primary);
-}
-
-.task-form__input,
-.task-form__textarea,
-.task-form__select {
+  background: var(--color-surface);
   border: var(--border-width) solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-  font-size: var(--font-size-body);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* ── Close button ── */
+.modal__close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-gray-400);
+  cursor: pointer;
+  transition: color 0.15s;
+  padding: 0;
+}
+
+.modal__close:hover {
   color: var(--color-primary);
-  background-color: var(--color-surface);
+}
+
+.modal__close .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* ── Body ── */
+.modal__body {
+  padding: 2rem 2.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Label ── */
+.modal__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-gray-400);
+}
+
+/* ── Title field ── */
+.modal__title-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal__title-field:focus-within .modal__title-underline {
+  background-color: var(--color-primary);
+}
+
+.modal__title-input {
+  width: 100%;
+  font-size: 1.5rem;
+  font-weight: 600;
+  background: transparent;
+  border: none;
   outline: none;
-  transition: border-color 0.2s;
+  padding: 0;
+  color: var(--color-primary);
   font-family: var(--font-family);
 }
 
-.task-form__input:focus,
-.task-form__textarea:focus,
-.task-form__select:focus {
-  border-color: var(--color-primary);
+.modal__title-input::placeholder {
+  color: var(--color-gray-400);
+  opacity: 0.6;
 }
 
-.task-form__textarea {
-  resize: vertical;
+.modal__title-underline {
+  height: 1px;
+  width: 100%;
+  background-color: var(--border-color);
+  transition: background-color 0.2s;
 }
 
-.task-form__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: var(--space-md);
+/* ── Notes ── */
+.modal__notes {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 0;
+  font-size: var(--font-size-body);
+  color: var(--color-gray-500);
+  font-family: var(--font-family);
+  line-height: 1.6;
 }
 
-.task-form__dots {
+.modal__notes::placeholder {
+  color: var(--color-gray-400);
+}
+
+/* ── Meta row ── */
+.modal__meta {
   display: flex;
+  gap: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: var(--border-width) solid var(--border-color);
+}
+
+.modal__meta-field {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-xs);
 }
 
-.task-form__dot-btn {
-  width: 32px;
-  height: 32px;
+.modal__meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-gray-400);
+}
+
+.modal__select {
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius-md);
-  background: none;
+  padding: var(--space-xs) var(--space-sm);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-gray-400);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.task-form__dot-btn:hover {
-  border-color: var(--color-primary);
   color: var(--color-primary);
+  background: var(--color-surface);
+  outline: none;
+  font-family: var(--font-family);
+  transition: border-color 0.15s;
 }
 
-.task-form__dot-btn--active {
-  background-color: var(--color-primary);
+.modal__select:focus {
   border-color: var(--color-primary);
-  color: var(--color-surface);
 }
 
-.task-form__error {
+/* ── Error ── */
+.modal__error {
   font-size: var(--font-size-sm);
   color: #dc2626;
 }
 
-.task-form__actions {
+/* ── Footer ── */
+.modal__footer {
   display: flex;
-  gap: var(--space-sm);
-  padding-top: var(--space-sm);
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2.5rem 1.5rem;
+  border-top: var(--border-width) solid var(--border-color);
 }
 
-.task-form__submit {
-  padding: var(--space-sm) var(--space-lg);
+.modal__footer-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.modal__hint {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-400);
+}
+
+.modal__hint--hidden-sm {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .modal__hint--hidden-sm {
+    display: flex;
+  }
+}
+
+.modal__hint kbd {
+  padding: 2px 6px;
+  border: var(--border-width) solid var(--border-color);
+  border-radius: 4px;
+  background: var(--color-background);
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--color-gray-500);
+}
+
+/* ── Submit ── */
+.modal__submit {
+  padding: 0.625rem 1.75rem;
   background-color: var(--color-primary);
   color: var(--color-surface);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.1s;
+  font-family: var(--font-family);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.task-form__submit:disabled {
+.modal__submit:hover {
+  opacity: 0.9;
+}
+
+.modal__submit:active {
+  transform: scale(0.97);
+}
+
+.modal__submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.task-form__cancel {
-  padding: var(--space-sm) var(--space-md);
-  background: none;
-  border: var(--border-width) solid var(--border-color);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  color: var(--color-gray-500);
-  cursor: pointer;
 }
 </style>
