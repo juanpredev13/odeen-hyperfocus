@@ -19,6 +19,17 @@ export async function fetchTasks(projectId: string): Promise<TasksResult<Task[]>
   return { data: data as Task[], error: null }
 }
 
+export async function fetchAllTasks(): Promise<TasksResult<Task[]>> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .order('created_at', { ascending: true })
+
+  if (error) return { data: null, error: { message: error.message } }
+
+  return { data: data as Task[], error: null }
+}
+
 export async function createTask(payload: CreateTaskPayload): Promise<TasksResult<Task>> {
   const { data, error } = await supabase.from('tasks').insert(payload).select().single()
 

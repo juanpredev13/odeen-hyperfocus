@@ -89,11 +89,21 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useProjects } from '@/modules/projects/composables/useProjects'
 import type { Project } from '@/modules/projects/types'
 
-const { projects, activeProject, loading, error, fetchProjects, createProject, updateProject, deleteProject, selectProject } =
+const router = useRouter()
+const { projects, activeProject, loading, error, fetchProjects, createProject, updateProject, deleteProject } =
   useProjects()
+
+function toSlug(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '-')
+}
+
+function selectProject(project: Project): void {
+  router.push({ name: 'project', params: { slug: toSlug(project.name) } })
+}
 
 const showForm = ref(false)
 const newName = ref('')

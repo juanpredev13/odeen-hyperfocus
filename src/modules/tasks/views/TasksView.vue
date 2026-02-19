@@ -1,7 +1,8 @@
 <template>
   <div class="tasks">
-    <!-- No project selected: hero + project grid -->
-    <template v-if="!activeProject">
+
+    <!-- Empty state: no tasks anywhere -->
+    <template v-if="!loading && !hasAnyTasks">
       <header class="tasks__top-bar">
         <span class="tasks__date">{{ currentDate }}</span>
       </header>
@@ -13,19 +14,18 @@
         <p class="tasks__hero-subtitle">
           {{
             projects.length > 0
-              ? 'Select a project to begin your deep work session.'
+              ? 'Your projects are empty. Open one to add your first task.'
               : 'Your workspace is clear. Create a project to get started.'
           }}
         </p>
       </div>
 
-      <!-- Projects grid -->
       <div v-if="projects.length > 0" class="tasks__projects-grid">
-        <button
+        <RouterLink
           v-for="p in projects"
           :key="p.id"
           class="tasks__project-card"
-          @click="handleProjectCardClick(p)"
+          :to="{ name: 'project', params: { slug: toSlug(p.name) } }"
         >
           <div class="tasks__project-card-top">
             <h3 class="tasks__project-card-name">{{ p.name }}</h3>
@@ -34,23 +34,17 @@
             <div class="tasks__project-card-divider"></div>
             <span class="tasks__project-card-cta">Add your first task</span>
           </div>
-        </button>
+        </RouterLink>
       </div>
 
-      <!-- Actions -->
-      <div v-if="projects.length > 0" class="tasks__actions">
-        <RouterLink class="tasks__btn tasks__btn--outline" to="/">Manage Projects</RouterLink>
-      </div>
-
-      <!-- Empty state dashed box -->
       <div class="tasks__empty-container">
         <div class="tasks__empty-dashed">
-          <h4 class="tasks__empty-dashed-title">No Active Projects</h4>
+          <h4 class="tasks__empty-dashed-title">No Tasks Yet</h4>
           <p class="tasks__empty-dashed-text">
             {{
               projects.length > 0
-                ? 'Select a project above to start working on tasks.'
-                : 'You currently have no tasks in your queue. Create a project to organize your work.'
+                ? 'Select a project above to start adding tasks.'
+                : 'Create a project first, then add tasks to it.'
             }}
           </p>
           <RouterLink v-if="projects.length === 0" class="tasks__empty-dashed-link" to="/">
@@ -60,69 +54,72 @@
       </div>
     </template>
 
-    <!-- Project selected: task list -->
-    <template v-else>
-      <header class="tasks__header">
-        <div class="tasks__header-left">
-          <button class="tasks__back-btn" @click="handleBack">
-            <span class="material-symbols-outlined">arrow_back</span>
-          </button>
-          <h1 class="tasks__title">{{ activeProject.name }}</h1>
-          <span class="tasks__count">{{ tasks.length }} tasks</span>
-        </div>
-        <button class="tasks__add-btn" @click="showForm = true">
-          <span class="material-symbols-outlined">add</span>
-          New task
-        </button>
+    <!-- Tasks exist: grouped by project -->
+    <template v-else-if="hasAnyTasks">
+      <header class="tasks__top-bar">
+        <span class="tasks__date">{{ currentDate }}</span>
       </header>
 
-      <p v-if="error" class="tasks__error" @click="clearError">{{ error.message }}</p>
+      <div class="tasks__grouped">
+        <section
+          v-for="group in tasksByProject"
+          :key="group.project.id"
+          class="tasks__group"
+        >
+          <div class="tasks__group-header">
+            <RouterLink
+              class="tasks__group-name"
+              :to="{ name: 'project', params: { slug: toSlug(group.project.name) } }"
+            >
+              {{ group.project.name }}
+            </RouterLink>
+            <span class="tasks__group-count">{{ group.tasks.length }}</span>
+          </div>
 
-      <div class="tasks__list">
-        <TaskCard
-          v-for="task in tasks"
-          :key="task.id"
-          :task="task"
-          @edit="startEdit"
-          @delete="handleDelete"
-        />
-
-        <p v-if="!loading && tasks.length === 0" class="tasks__empty">
-          No tasks yet. Create your first one.
-        </p>
+          <div class="tasks__list">
+            <TaskCard
+              v-for="task in group.tasks"
+              :key="task.id"
+              :task="task"
+              @edit="startEdit(task, group.project.id)"
+              @delete="handleDelete"
+            />
+          </div>
+        </section>
       </div>
 
       <TaskForm
-        v-if="showForm"
-        :task="editingTask ?? undefined"
-        :project-id="activeProject.id"
-        :loading="loading"
-        :error="error?.message"
+        v-if="showForm && editingTask && editingProjectId"
+        :task="editingTask"
+        :project-id="editingProjectId"
+        :loading="saving"
+        :error="formError"
         @submit="handleSubmit"
         @cancel="closeForm"
       />
     </template>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import { useTasks } from '@/modules/tasks/composables/useTasks'
+import { ref, computed, onMounted } from 'vue'
 import { useProjects } from '@/modules/projects/composables/useProjects'
-import { useActiveProject } from '@/store/activeProject'
+import { fetchAllTasks, updateTask as updateTaskService, deleteTask as deleteTaskService } from '@/modules/tasks/services/tasks.service'
 import TaskCard from '@/modules/tasks/components/TaskCard.vue'
 import TaskForm from '@/modules/tasks/components/TaskForm.vue'
-import type { Task, TaskStatus, EnergyLevel, ImpactScore } from '@/modules/tasks/types'
-import type { Project } from '@/modules/projects/types'
+import type { Task, TaskStatus } from '@/modules/tasks/types'
 
-const { projects, fetchProjects, selectProject } = useProjects()
-const { activeProject, clearActiveProject } = useActiveProject()
-const { tasks, loading, error, fetchTasks, createTask, updateTask, deleteTask, clearError } =
-  useTasks()
+const { projects, fetchProjects } = useProjects()
+
+const allTasks = ref<Task[]>([])
+const loading = ref(false)
+const saving = ref(false)
+const formError = ref<string | undefined>(undefined)
 
 const showForm = ref(false)
 const editingTask = ref<Task | null>(null)
-const autoOpenForm = ref(false)
+const editingProjectId = ref<string | null>(null)
 
 const currentDate = new Date().toLocaleDateString('en-US', {
   weekday: 'long',
@@ -132,59 +129,67 @@ const currentDate = new Date().toLocaleDateString('en-US', {
   minute: '2-digit',
 })
 
+function toSlug(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '-')
+}
+
 onMounted(async () => {
+  loading.value = true
   if (projects.value.length === 0) await fetchProjects()
-  if (activeProject.value) fetchTasks(activeProject.value.id)
+  const result = await fetchAllTasks()
+  if (result.data) allTasks.value = result.data
+  loading.value = false
 })
 
-watch(activeProject, async (project) => {
-  if (!project) return
-  await fetchTasks(project.id)
-  if (autoOpenForm.value && tasks.value.length === 0) {
-    showForm.value = true
-  }
-  autoOpenForm.value = false
-})
+const hasAnyTasks = computed(() => allTasks.value.length > 0)
 
-function handleProjectCardClick(project: Project): void {
-  autoOpenForm.value = true
-  selectProject(project)
-}
+const tasksByProject = computed(() =>
+  projects.value
+    .map((project) => ({
+      project,
+      tasks: allTasks.value.filter((t) => t.project_id === project.id),
+    }))
+    .filter((g) => g.tasks.length > 0),
+)
 
-function handleBack(): void {
-  clearActiveProject()
-}
-
-function startEdit(task: Task): void {
+function startEdit(task: Task, projectId: string): void {
   editingTask.value = task
+  editingProjectId.value = projectId
   showForm.value = true
 }
 
 function closeForm(): void {
   showForm.value = false
   editingTask.value = null
+  editingProjectId.value = null
+  formError.value = undefined
 }
 
 async function handleSubmit(payload: {
   title: string
   description: string | null
   status: TaskStatus
-  energy_level: EnergyLevel
-  impact_score: ImpactScore
 }): Promise<void> {
-  if (editingTask.value) {
-    await updateTask({ id: editingTask.value.id, ...payload })
-  } else {
-    if (!activeProject.value) return
-    await createTask({ project_id: activeProject.value.id, ...payload })
+  if (!editingTask.value) return
+  saving.value = true
+  formError.value = undefined
+  const result = await updateTaskService({ id: editingTask.value.id, ...payload })
+  saving.value = false
+  if (result.error) {
+    formError.value = result.error.message
+    return
   }
-
-  if (!error.value) closeForm()
+  if (result.data) {
+    const idx = allTasks.value.findIndex((t) => t.id === editingTask.value!.id)
+    if (idx !== -1) allTasks.value[idx] = result.data
+  }
+  closeForm()
 }
 
 async function handleDelete(id: string): Promise<void> {
   if (!confirm('Delete this task?')) return
-  await deleteTask(id)
+  await deleteTaskService(id)
+  allTasks.value = allTasks.value.filter((t) => t.id !== id)
 }
 </script>
 
@@ -239,6 +244,7 @@ async function handleDelete(id: string): Promise<void> {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: var(--space-lg);
   margin-bottom: var(--space-xl);
+  text-decoration: none;
 }
 
 .tasks__project-card {
@@ -252,6 +258,7 @@ async function handleDelete(id: string): Promise<void> {
   background: transparent;
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
   transition: background-color 0.3s, color 0.3s;
 }
 
@@ -304,49 +311,7 @@ async function handleDelete(id: string): Promise<void> {
   opacity: 1;
 }
 
-/* ── Actions row ── */
-.tasks__actions {
-  display: flex;
-  gap: var(--space-md);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-xl);
-}
-
-.tasks__btn {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--space-md) var(--space-xl);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
-  border: var(--border-width) solid var(--color-primary);
-}
-
-.tasks__btn--primary {
-  background-color: var(--color-primary);
-  color: var(--color-surface);
-}
-
-.tasks__btn--primary:hover {
-  opacity: 0.9;
-}
-
-.tasks__btn--outline {
-  background: transparent;
-  color: var(--color-primary);
-}
-
-.tasks__btn--outline:hover {
-  background-color: var(--color-primary);
-  color: var(--color-surface);
-}
-
-/* ── Empty state dashed ── */
+/* ── Empty state ── */
 .tasks__empty-container {
   border-top: 1px solid color-mix(in srgb, var(--color-primary) 5%, transparent);
   padding-top: var(--space-xl);
@@ -394,91 +359,45 @@ async function handleDelete(id: string): Promise<void> {
   text-decoration-thickness: 2px;
 }
 
-/* ── Task list header ── */
-.tasks__header {
+/* ── Grouped list ── */
+.tasks__grouped {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.tasks__group-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-lg);
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: var(--border-width) solid var(--border-color);
 }
 
-.tasks__header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.tasks__back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  border-radius: var(--radius-md);
-  color: var(--color-gray-400);
-  cursor: pointer;
-  transition: color 0.15s, background-color 0.15s;
-}
-
-.tasks__back-btn:hover {
-  color: var(--color-primary);
-  background-color: var(--color-background);
-}
-
-.tasks__back-btn .material-symbols-outlined {
-  font-size: 20px;
-}
-
-.tasks__title {
-  font-size: var(--font-size-h2);
+.tasks__group-name {
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
-  letter-spacing: var(--tracking-tight);
-}
-
-.tasks__count {
-  font-size: var(--font-size-sm);
-  color: var(--color-gray-400);
-  font-family: monospace;
-}
-
-.tasks__add-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  background-color: var(--color-primary);
-  color: var(--color-surface);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  text-decoration: none;
   transition: opacity 0.15s;
 }
 
-.tasks__add-btn:hover {
-  opacity: 0.85;
+.tasks__group-name:hover {
+  opacity: 0.6;
 }
 
-/* ── Task list ── */
-.tasks__error {
-  font-size: var(--font-size-sm);
-  color: #dc2626;
-  margin-bottom: var(--space-md);
-  cursor: pointer;
+.tasks__group-count {
+  font-size: var(--font-size-xs);
+  font-family: monospace;
+  color: var(--color-gray-400);
 }
 
 .tasks__list {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-}
-
-.tasks__empty {
-  font-size: var(--font-size-sm);
-  color: var(--color-gray-400);
-  margin-top: var(--space-lg);
 }
 </style>
