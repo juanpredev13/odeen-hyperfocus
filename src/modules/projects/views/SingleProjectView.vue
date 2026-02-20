@@ -14,10 +14,21 @@
       <!-- Progress ring -->
       <div class="project__progress">
         <svg class="project__progress-ring" viewBox="0 0 112 112">
-          <circle cx="56" cy="56" r="48" fill="none" stroke="var(--border-color)" stroke-width="1.5" />
           <circle
-            cx="56" cy="56" r="48" fill="none"
-            stroke="var(--color-primary)" stroke-width="1.5"
+            cx="56"
+            cy="56"
+            r="48"
+            fill="none"
+            stroke="var(--border-color)"
+            stroke-width="1.5"
+          />
+          <circle
+            cx="56"
+            cy="56"
+            r="48"
+            fill="none"
+            stroke="var(--color-primary)"
+            stroke-width="1.5"
             stroke-linecap="round"
             :stroke-dasharray="CIRCUMFERENCE"
             :stroke-dashoffset="dashOffset"
@@ -63,7 +74,11 @@
               <button class="project__task-btn" title="Edit" @click="startEdit(task)">
                 <span class="material-symbols-outlined">edit</span>
               </button>
-              <button class="project__task-btn project__task-btn--danger" title="Delete" @click="handleDelete(task.id)">
+              <button
+                class="project__task-btn project__task-btn--danger"
+                title="Delete"
+                @click="handleDelete(task.id)"
+              >
                 <span class="material-symbols-outlined">delete</span>
               </button>
             </div>
@@ -89,6 +104,21 @@
               <p class="project__stat-number">{{ doneTasks.length }}</p>
               <p class="project__stat-meta">Done</p>
             </div>
+          </div>
+        </div>
+
+        <!-- View links -->
+        <div class="project__sidebar-section">
+          <h3 class="project__sidebar-label">Views</h3>
+          <div class="project__views">
+            <RouterLink class="project__view-link" :to="`/project/${toSlug(project.name)}/board`">
+              <span class="material-symbols-outlined">view_kanban</span>
+              Board
+            </RouterLink>
+            <RouterLink class="project__view-link" :to="`/project/${toSlug(project.name)}/tasks`">
+              <span class="material-symbols-outlined">task_alt</span>
+              List
+            </RouterLink>
           </div>
         </div>
 
@@ -134,7 +164,8 @@ import type { Task, TaskStatus } from '@/modules/tasks/types'
 
 const route = useRoute()
 const { projects, fetchProjects } = useProjects()
-const { tasks, loading, error, fetchTasks, createTask, updateTask, deleteTask, updateStatus } = useTasks()
+const { tasks, loading, error, fetchTasks, createTask, updateTask, deleteTask, updateStatus } =
+  useTasks()
 
 const project = ref<Project | null>(null)
 const showForm = ref(false)
@@ -203,6 +234,8 @@ async function handleSubmit(payload: {
 .project {
   padding: var(--space-xl);
   max-width: 1100px;
+  overflow-y: auto;
+  height: 100%;
 }
 
 /* ── Header ── */
@@ -419,7 +452,9 @@ async function handleSubmit(payload: {
   border-radius: var(--radius-md);
   color: var(--color-gray-400);
   cursor: pointer;
-  transition: color 0.15s, background-color 0.15s;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
 }
 
 .project__task-btn:hover {
@@ -484,6 +519,37 @@ async function handleSubmit(payload: {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+
+/* ── View links ── */
+.project__views {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.project__view-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  color: var(--color-gray-500);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.project__view-link:hover {
+  background-color: var(--color-background);
+  color: var(--color-primary);
+}
+
+.project__view-link .material-symbols-outlined {
+  font-size: 20px;
 }
 
 /* ── Done list ── */

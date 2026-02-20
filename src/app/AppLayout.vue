@@ -187,7 +187,8 @@ async function handleSignOut(): Promise<void> {
 /* Main content */
 .app-layout__main {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 </style>
