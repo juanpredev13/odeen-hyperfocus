@@ -18,6 +18,13 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
 
+  // Focus mode (full-screen, no nav)
+  {
+    path: '/focus/:taskId',
+    name: 'focus',
+    component: () => import('@/modules/focus/views/FocusView.vue'),
+  },
+
   // Protected routes (with nav layout)
   {
     path: '/',

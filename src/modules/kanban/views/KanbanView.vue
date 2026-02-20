@@ -46,6 +46,7 @@
           @dragstart="draggingTaskId = $event"
           @dragend="draggingTaskId = null"
           @add-task="openForm(col.status)"
+          @focus="goToFocus"
         />
       </div>
 
@@ -72,7 +73,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useProjects } from '@/modules/projects/composables/useProjects'
 import {
   fetchTasks,
@@ -94,6 +95,7 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
 ]
 
 const route = useRoute()
+const router = useRouter()
 const { projects, fetchProjects } = useProjects()
 
 const selectedProject = ref<Project | null>(null)
@@ -158,6 +160,10 @@ function openForm(status: TaskStatus): void {
 function startEdit(task: Task): void {
   editingTask.value = task
   showForm.value = true
+}
+
+function goToFocus(task: Task): void {
+  router.push(`/focus/${task.id}`)
 }
 
 function closeForm(): void {
