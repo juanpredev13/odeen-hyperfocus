@@ -23,6 +23,14 @@
       <h3 class="kcard__title">{{ task.title }}</h3>
       <p v-if="task.description" class="kcard__desc">{{ task.description }}</p>
       <div class="kcard__actions">
+        <button
+          v-if="featured"
+          class="kcard__btn kcard__btn--focus"
+          title="Focus"
+          @click.stop="$emit('focus', task)"
+        >
+          <span class="material-symbols-outlined">center_focus_strong</span>
+        </button>
         <button class="kcard__btn" title="Edit" @click.stop="$emit('edit', task)">
           <span class="material-symbols-outlined">edit</span>
         </button>
@@ -52,6 +60,7 @@ const emit = defineEmits<{
   delete: [id: string]
   dragstart: [taskId: string]
   dragend: []
+  focus: [task: Task]
 }>()
 
 const isDragging = ref(false)
@@ -229,6 +238,11 @@ function onDragEnd(): void {
 .kcard__btn--danger:hover {
   color: #dc2626;
   background-color: #fef2f2;
+}
+
+.kcard__btn--focus:hover {
+  color: var(--color-primary);
+  background-color: var(--color-background);
 }
 
 .kcard__btn .material-symbols-outlined {

@@ -49,6 +49,7 @@
         @delete="$emit('delete', $event)"
         @dragstart="$emit('dragstart', $event)"
         @dragend="$emit('dragend')"
+        @focus="$emit('focus', $event)"
       />
 
       <!-- Drop placeholder (doing column, when dragging) -->
@@ -90,6 +91,7 @@ const emit = defineEmits<{
   'add-task': []
   dragstart: [taskId: string]
   dragend: []
+  focus: [task: Task]
 }>()
 
 const isDragOver = ref(false)
