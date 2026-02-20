@@ -162,6 +162,8 @@ watch(showForm, async (val) => {
 .projects {
   padding: var(--space-xl);
   max-width: 720px;
+  overflow-y: auto;
+  height: 100%;
 }
 
 .projects__header {
