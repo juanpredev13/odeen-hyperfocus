@@ -190,6 +190,132 @@ Justify the change: the problem it solves, user impact, data or feedback.
 - Auth tokens handled exclusively through Supabase Auth SDK
 - Validate all user input at the service layer
 
+## GitHub CLI (`gh`)
+
+Use `gh` (GitHub CLI) for all GitHub interactions — issues, PRs, actions, and repo queries. Never use the GitHub web UI when `gh` can do the job.
+
+### Issues
+
+```bash
+# List open issues
+gh issue list
+
+# List issues by label
+gh issue list --label "bug"
+gh issue list --label "enhancement"
+
+# View issue details
+gh issue view <number>
+
+# Create a new issue
+gh issue create --title "<type>(scope): description" --body "Details..." --label "<label>"
+
+# Close an issue with a comment
+gh issue close <number> --comment "Resolved in #<PR>"
+
+# Reopen an issue
+gh issue reopen <number>
+
+# Assign an issue
+gh issue edit <number> --add-assignee @me
+```
+
+> Issue titles should follow the same Conventional Commits format: `feat(kanban): add drag support`, `bug(auth): session lost on refresh`.
+
+### Pull Requests
+
+```bash
+# Create PR from current branch → main (interactive)
+gh pr create --base main
+
+# Create PR with all details
+gh pr create --base main --title "feat(tasks): add energy level filter" --body "## Description\n\nAdds filtering by energy level.\n\n## How to test\n\n1. Go to Kanban view\n2. Click filter icon"
+
+# List open PRs
+gh pr list
+
+# View PR details, diff, and checks
+gh pr view <number>
+gh pr diff <number>
+gh pr checks <number>
+
+# Review a PR
+gh pr review <number> --approve
+gh pr review <number> --request-changes --body "Fix X before merging"
+
+# Merge PR (squash to keep clean history)
+gh pr merge <number> --squash --delete-branch
+
+# Checkout a PR locally for testing
+gh pr checkout <number>
+```
+
+> Always use `--squash` when merging to keep a linear commit history on `main`.
+
+### Actions / Workflows
+
+```bash
+# List workflow runs
+gh run list
+
+# View a specific run
+gh run view <run-id>
+
+# Watch a run in real time
+gh run watch <run-id>
+
+# View run logs
+gh run view <run-id> --log
+
+# Re-run a failed workflow
+gh run rerun <run-id>
+
+# List available workflows
+gh workflow list
+
+# Trigger a workflow manually
+gh workflow run <workflow-name>
+```
+
+### Branching Workflow
+
+Always create branches from issues when possible:
+
+```bash
+# Create a feature branch linked to an issue
+git checkout main && git pull
+git checkout -b feat/<issue-number>-<short-description>
+
+# Example: issue #8 about focus mode
+git checkout -b feat/8-focus-mode
+```
+
+Branch naming conventions:
+
+| Prefix       | When to use                       |
+| ------------ | --------------------------------- |
+| `feat/`      | New features                      |
+| `fix/`       | Bug fixes                         |
+| `refactor/`  | Code restructuring                |
+| `docs/`      | Documentation changes             |
+| `chore/`     | Maintenance, config, tooling      |
+
+### Quick Repo Queries
+
+```bash
+# View repo info
+gh repo view
+
+# Clone the repo (for new setups)
+gh repo clone juanpredev13/odeen-hyperfocus
+
+# View recent activity
+gh api repos/{owner}/{repo}/events --jq '.[0:5] | .[].type'
+
+# Search issues
+gh issue list --search "kanban drag"
+```
+
 ## Do NOT
 
 - Add Tailwind or any CSS utility framework
