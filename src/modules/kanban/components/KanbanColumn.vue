@@ -217,7 +217,7 @@ function onDrop(e: Event): void {
   width: 8px;
   height: 8px;
   border-radius: var(--radius-full);
-  background: #22c55e;
+  background: var(--color-status-done-dot);
   animation: pulse 2s infinite;
 }
 
