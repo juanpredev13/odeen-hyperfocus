@@ -153,7 +153,7 @@ import {
 } from '@/modules/tasks/services/tasks.service'
 import TaskCard from '@/modules/tasks/components/TaskCard.vue'
 import TaskForm from '@/modules/tasks/components/TaskForm.vue'
-import type { Task, TaskStatus } from '@/modules/tasks/types'
+import type { Task, TaskStatus, EnergyLevel, ImpactScore } from '@/modules/tasks/types'
 
 const route = useRoute()
 const { projects, fetchProjects } = useProjects()
@@ -240,6 +240,8 @@ async function handleSubmit(payload: {
   title: string
   description: string | null
   status: TaskStatus
+  energy_level: EnergyLevel
+  impact_score: ImpactScore
 }): Promise<void> {
   if (!editingProjectId.value) return
   saving.value = true

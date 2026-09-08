@@ -160,7 +160,7 @@ import { useProjects } from '@/modules/projects/composables/useProjects'
 import { useTasks } from '@/modules/tasks/composables/useTasks'
 import TaskForm from '@/modules/tasks/components/TaskForm.vue'
 import type { Project } from '@/modules/projects/types'
-import type { Task, TaskStatus } from '@/modules/tasks/types'
+import type { Task, TaskStatus, EnergyLevel, ImpactScore } from '@/modules/tasks/types'
 
 const route = useRoute()
 const { projects, fetchProjects } = useProjects()
@@ -219,6 +219,8 @@ async function handleSubmit(payload: {
   title: string
   description: string | null
   status: TaskStatus
+  energy_level: EnergyLevel
+  impact_score: ImpactScore
 }): Promise<void> {
   if (editingTask.value) {
     await updateTask({ id: editingTask.value.id, ...payload })

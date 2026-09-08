@@ -84,7 +84,7 @@ import {
 import KanbanColumn from '@/modules/kanban/components/KanbanColumn.vue'
 import TaskForm from '@/modules/tasks/components/TaskForm.vue'
 import type { Project } from '@/modules/projects/types'
-import type { Task, TaskStatus } from '@/modules/tasks/types'
+import type { Task, TaskStatus, EnergyLevel, ImpactScore } from '@/modules/tasks/types'
 
 const WIP_LIMIT = 3
 
@@ -176,6 +176,8 @@ async function handleSubmit(payload: {
   title: string
   description: string | null
   status: TaskStatus
+  energy_level: EnergyLevel
+  impact_score: ImpactScore
 }): Promise<void> {
   if (!selectedProject.value) return
   saving.value = true

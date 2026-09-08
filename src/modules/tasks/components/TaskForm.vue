@@ -42,6 +42,26 @@
                 <option value="done">Done</option>
               </select>
             </div>
+
+            <div class="modal__meta-field">
+              <label class="modal__meta-label" for="energy">Energy</label>
+              <select id="energy" v-model.number="form.energy_level" class="modal__select">
+                <option :value="1">Low</option>
+                <option :value="2">Medium</option>
+                <option :value="3">High</option>
+              </select>
+            </div>
+
+            <div class="modal__meta-field">
+              <label class="modal__meta-label" for="impact">Impact</label>
+              <select id="impact" v-model.number="form.impact_score" class="modal__select">
+                <option :value="1">1</option>
+                <option :value="2">2</option>
+                <option :value="3">3</option>
+                <option :value="4">4</option>
+                <option :value="5">5</option>
+              </select>
+            </div>
           </div>
 
           <p v-if="error" class="modal__error">{{ error }}</p>
@@ -70,7 +90,7 @@
 
 <script setup lang="ts">
 import { reactive } from 'vue'
-import type { Task, TaskStatus } from '@/modules/tasks/types'
+import type { Task, TaskStatus, EnergyLevel, ImpactScore } from '@/modules/tasks/types'
 
 const props = defineProps<{
   task?: Task
@@ -84,6 +104,8 @@ const emit = defineEmits<{
     title: string
     description: string | null
     status: TaskStatus
+    energy_level: EnergyLevel
+    impact_score: ImpactScore
   }]
   cancel: []
 }>()
@@ -92,6 +114,8 @@ const form = reactive({
   title: props.task?.title ?? '',
   description: props.task?.description ?? '',
   status: (props.task?.status ?? 'todo') as TaskStatus,
+  energy_level: (props.task?.energy_level ?? 1) as EnergyLevel,
+  impact_score: (props.task?.impact_score ?? 1) as ImpactScore,
 })
 
 function handleSubmit(): void {
@@ -100,6 +124,8 @@ function handleSubmit(): void {
     title: form.title.trim(),
     description: form.description.trim() || null,
     status: form.status,
+    energy_level: form.energy_level,
+    impact_score: form.impact_score,
   })
 }
 </script>
