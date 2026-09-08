@@ -231,6 +231,12 @@ function onDrop(e: Event): void {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .kcol__pulse {
+    animation: none;
+  }
+}
+
 /* ── WIP badge ── */
 .kcol__wip {
   display: flex;

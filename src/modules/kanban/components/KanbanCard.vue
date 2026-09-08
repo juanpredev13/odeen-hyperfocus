@@ -27,19 +27,26 @@
           v-if="featured"
           class="kcard__btn kcard__btn--focus"
           title="Focus"
+          aria-label="Focus on this task"
           @click.stop="$emit('focus', task)"
         >
-          <span class="material-symbols-outlined">center_focus_strong</span>
+          <span class="material-symbols-outlined" aria-hidden="true">center_focus_strong</span>
         </button>
-        <button class="kcard__btn" title="Edit" @click.stop="$emit('edit', task)">
-          <span class="material-symbols-outlined">edit</span>
+        <button
+          class="kcard__btn"
+          title="Edit"
+          aria-label="Edit task"
+          @click.stop="$emit('edit', task)"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
         </button>
         <button
           class="kcard__btn kcard__btn--danger"
           title="Delete"
+          aria-label="Delete task"
           @click.stop="$emit('delete', task.id)"
         >
-          <span class="material-symbols-outlined">delete</span>
+          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
         </button>
       </div>
     </template>
@@ -210,7 +217,8 @@ function onDragEnd(): void {
   border-top-color: rgba(255, 255, 255, 0.1);
 }
 
-.kcard:hover .kcard__actions {
+.kcard:hover .kcard__actions,
+.kcard:focus-within .kcard__actions {
   opacity: 1;
 }
 

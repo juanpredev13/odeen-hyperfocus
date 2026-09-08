@@ -18,8 +18,12 @@
     <template v-else>
       <header class="kanban-header">
         <div class="kanban-header__left">
-          <RouterLink class="kanban-header__back" :to="`/project/${toSlug(selectedProject.name)}`">
-            <span class="material-symbols-outlined">arrow_back</span>
+          <RouterLink
+            class="kanban-header__back"
+            :to="`/project/${toSlug(selectedProject.name)}`"
+            aria-label="Back to project"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
           </RouterLink>
           <div>
             <h2 class="kanban-header__title">{{ selectedProject.name }}</h2>
