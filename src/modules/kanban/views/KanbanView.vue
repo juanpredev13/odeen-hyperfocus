@@ -391,8 +391,8 @@ async function handleDelete(id: string): Promise<void> {
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%);
-  background: #dc2626;
-  color: white;
+  background: var(--color-danger);
+  color: #ffffff;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   padding: 0.75rem 1.5rem;

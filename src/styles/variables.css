@@ -76,4 +76,59 @@
   --icon-size: 24px;
   --icon-size-sm: 18px;
   --icon-size-lg: 20px;
+
+  /* Semantic status (warning / danger) — used instead of raw hex in components */
+  --color-warning-bg: #fff7ed;
+  --color-warning-border: #fed7aa;
+  --color-warning-text: #c2410c;
+  --color-danger: #dc2626;
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fecaca;
+  --color-danger-text: #dc2626;
+}
+
+/* ── Dark theme ──
+   Toggled via [data-theme="dark"] on <html>, set by useTheme composable.
+   Desaturated near-black surfaces, off-white ink — same minimalist
+   language as light mode, not a colorful redesign. */
+:root[data-theme='dark'] {
+  --color-primary: #f2f2f2;
+  --color-surface: #16171a;
+  --color-background: #0d0e10;
+
+  --color-status-active: #2e1f3d;
+  --color-status-active-dot: #a855f7;
+  --color-status-active-text: #e9d5ff;
+  --color-status-focus: #17293b;
+  --color-status-focus-dot: #3b82f6;
+  --color-status-focus-text: #bfdbfe;
+  --color-status-done: #14301f;
+  --color-status-done-dot: #22c55e;
+  --color-status-done-text: #bbf7d0;
+  --color-status-neutral: #1a1b1e;
+  --color-status-neutral-dot: #6b7280;
+  --color-status-neutral-text: #e5e7eb;
+
+  --color-gray-100: #1a1b1e;
+  --color-gray-200: #2a2b2f;
+  --color-gray-300: #3f4046;
+  --color-gray-400: #71717a;
+  --color-gray-500: #a1a1aa;
+  --color-gray-600: #d4d4d8;
+  --color-gray-900: #f4f4f5;
+
+  --border-color: #2a2b2f;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+
+  --color-warning-bg: #2b1d0f;
+  --color-warning-border: #6b3d17;
+  --color-warning-text: #fb923c;
+  /* --color-danger stays the same saturated red in both themes — it's used
+     as a solid fill (white text on top), not text-on-surface, so it doesn't
+     need to lighten for dark backgrounds the way --color-danger-text does. */
+  --color-danger-bg: #2c1414;
+  --color-danger-border: #6b1f1f;
+  --color-danger-text: #f87171;
 }
