@@ -139,7 +139,7 @@ function handleSubmit(): void {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.05);
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   padding: var(--space-md);
@@ -292,7 +292,7 @@ function handleSubmit(): void {
 /* ── Error ── */
 .modal__error {
   font-size: var(--font-size-sm);
-  color: #dc2626;
+  color: var(--color-danger-text);
 }
 
 /* ── Footer ── */

@@ -120,7 +120,7 @@ onUnmounted(() => {
 .focus {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at center, #fafafa 0%, #f0f0f0 100%);
+  background: radial-gradient(circle at center, var(--color-surface) 0%, var(--color-background) 100%);
   display: flex;
   flex-direction: column;
   z-index: 1000;
@@ -178,7 +178,7 @@ onUnmounted(() => {
 }
 
 .focus__exit:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: color-mix(in srgb, var(--color-primary) 5%, transparent);
 }
 
 .focus__exit span:first-child {
@@ -344,8 +344,8 @@ onUnmounted(() => {
 
 .focus__shortcut kbd {
   padding: 0.25rem 0.5rem;
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 10%, transparent);
   border-radius: 4px;
   font-size: 10px;
   font-weight: 700;
@@ -398,7 +398,7 @@ onUnmounted(() => {
   top: 50%;
   width: 200px;
   height: 300px;
-  background: rgba(0, 0, 0, 0.03);
+  background: color-mix(in srgb, var(--color-primary) 3%, transparent);
   border-radius: 50%;
   filter: blur(80px);
   pointer-events: none;

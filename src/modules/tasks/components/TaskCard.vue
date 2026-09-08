@@ -117,8 +117,8 @@ const energyLabel = computed(() => {
 }
 
 .task-card__btn--danger:hover {
-  color: #dc2626;
-  background-color: #fef2f2;
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
 }
 
 .task-card__btn .material-symbols-outlined {

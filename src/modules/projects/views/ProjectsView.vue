@@ -257,7 +257,7 @@ watch(showForm, async (val) => {
 
 .projects__error {
   font-size: var(--font-size-sm);
-  color: #dc2626;
+  color: var(--color-danger-text);
   margin-bottom: var(--space-md);
 }
 
@@ -344,8 +344,8 @@ watch(showForm, async (val) => {
 }
 
 .project-card__action-btn--danger:hover {
-  color: #dc2626;
-  background-color: #fef2f2;
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
 }
 
 .project-card__action-btn .material-symbols-outlined {

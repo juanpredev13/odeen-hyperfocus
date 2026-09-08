@@ -323,7 +323,7 @@ async function handleSubmit(payload: {
 /* ── Body ── */
 .project__error {
   font-size: var(--font-size-sm);
-  color: #dc2626;
+  color: var(--color-danger-text);
   margin-bottom: var(--space-md);
 }
 
@@ -465,8 +465,8 @@ async function handleSubmit(payload: {
 }
 
 .project__task-btn--danger:hover {
-  color: #dc2626;
-  background-color: #fef2f2;
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
 }
 
 .project__task-btn .material-symbols-outlined {
