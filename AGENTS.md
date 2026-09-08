@@ -107,6 +107,16 @@ Key constraints:
 - Avoid unnecessary re-renders — use `computed` and `shallowRef` where appropriate
 - Keep drag interactions under 16ms frame budget
 
+## Rules from Codebase Analysis (2026-09-07)
+
+Gaps found in current state → binding rules going forward:
+
+- **Graph module (`src/modules/graph/`) is unbuilt.** Any PR touching graph must implement per Issue #7 (`docs/requirements/graph.md`): Canvas/SVG only, no external graph library, service file `graph.service.ts` with `fetchConnections/createConnection/deleteConnection`, positions persisted via `tasks.service.updatePosition`. Do not scaffold partial UI without the service layer wired.
+- **No `any`, ever — including via `eslint-disable`.** Disabling the no-explicit-any rule to sneak in `any` is the same violation as writing `any` directly. Native DOM handlers must use real types (`e: KeyboardEvent`, not `e: any` + disable comment).
+- **Business-critical constraints must live in the DB, not only the UI.** The 3-task WIP limit (`doing` status) is UI-only today — a second tab or concurrent request can bypass it. New migrations enforcing constraints like this (check constraint, trigger, or RLS policy) are required before calling such a rule "enforced."
+- **Views that fetch data must go through an existing module service** (as `FocusView.vue` correctly does via `tasks.service`) — never call Supabase directly from a view, and never duplicate fetch logic already owned by another module's service.
+- **A module with only `.gitkeep` files is not a target for feature additions** until its `service`/`types`/`composable` layers exist — build the layer, not just the view.
+
 ## Commits
 
 All commit messages must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
