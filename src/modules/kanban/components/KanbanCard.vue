@@ -109,6 +109,17 @@ function onDragEnd(): void {
   box-shadow: var(--shadow-sm);
 }
 
+/* Dark: brutalist — border always visible, hover snaps to a hard outline
+   instead of a soft shadow. */
+:root[data-theme='dark'] .kcard {
+  border-color: var(--border-color);
+}
+
+:root[data-theme='dark'] .kcard:hover {
+  border-color: var(--color-primary);
+  box-shadow: none;
+}
+
 .kcard:active {
   cursor: grabbing;
 }
@@ -129,6 +140,17 @@ function onDragEnd(): void {
   transform: translateY(-2px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
   border-color: transparent;
+}
+
+/* Dark: brutalist — hard border instead of shadow-based lift, no glow. */
+:root[data-theme='dark'] .kcard--featured {
+  border-color: var(--color-primary);
+  box-shadow: none;
+}
+
+:root[data-theme='dark'] .kcard--featured:hover {
+  box-shadow: none;
+  border-color: var(--color-primary);
 }
 
 .kcard--featured .kcard__title {

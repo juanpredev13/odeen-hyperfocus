@@ -159,6 +159,12 @@ function onDrop(e: Event): void {
   box-shadow: var(--shadow-lg);
 }
 
+/* Dark: brutalist — thicker outlined block instead of shadow-based lift. */
+:root[data-theme='dark'] .kcol--doing {
+  border-width: 3px;
+  border-color: var(--color-primary);
+}
+
 /* Done column: slightly faded */
 .kcol--done {
   opacity: 0.85;
