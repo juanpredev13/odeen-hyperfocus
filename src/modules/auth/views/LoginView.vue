@@ -19,14 +19,26 @@
 
         <div class="auth-form__field">
           <label class="auth-form__label" for="password">Password</label>
-          <input
-            id="password"
-            v-model="password"
-            class="auth-form__input"
-            type="password"
-            autocomplete="current-password"
-            required
-          />
+          <div class="auth-form__password-wrap">
+            <input
+              id="password"
+              v-model="password"
+              class="auth-form__input"
+              :type="showPassword ? 'text' : 'password'"
+              autocomplete="current-password"
+              required
+            />
+            <button
+              class="auth-form__toggle-password"
+              type="button"
+              :aria-label="showPassword ? 'Hide password' : 'Show password'"
+              @click="showPassword = !showPassword"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">
+                {{ showPassword ? 'visibility_off' : 'visibility' }}
+              </span>
+            </button>
+          </div>
         </div>
 
         <p v-if="error" class="auth-form__error">{{ error.message }}</p>
@@ -54,6 +66,7 @@ const { loading, error, signIn } = useAuth()
 
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
 
 async function handleSubmit(): Promise<void> {
   const success = await signIn(email.value, password.value)
@@ -128,6 +141,43 @@ async function handleSubmit(): Promise<void> {
 
 .auth-form__input:focus {
   border-color: var(--color-primary);
+}
+
+.auth-form__password-wrap {
+  position: relative;
+  display: flex;
+}
+
+.auth-form__password-wrap .auth-form__input {
+  width: 100%;
+  padding-right: calc(var(--space-md) + 24px + var(--space-xs));
+}
+
+.auth-form__toggle-password {
+  position: absolute;
+  top: 50%;
+  right: var(--space-sm);
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-gray-400);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.auth-form__toggle-password:hover,
+.auth-form__toggle-password:focus-visible {
+  color: var(--color-primary);
+}
+
+.auth-form__toggle-password .material-symbols-outlined {
+  font-size: var(--icon-size-lg);
 }
 
 .auth-form__error {
