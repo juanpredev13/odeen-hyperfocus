@@ -96,11 +96,11 @@
         <div class="project__sidebar-section">
           <h3 class="project__sidebar-label">Overview</h3>
           <div class="project__stats">
-            <div class="project__stat">
+            <div class="project__stat project__stat--active">
               <p class="project__stat-number">{{ tasks.length }}</p>
               <p class="project__stat-meta">Total Tasks</p>
             </div>
-            <div class="project__stat">
+            <div class="project__stat project__stat--done">
               <p class="project__stat-number">{{ doneTasks.length }}</p>
               <p class="project__stat-meta">Done</p>
             </div>
@@ -503,7 +503,21 @@ async function handleSubmit(payload: {
 .project__stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: var(--space-sm);
+}
+
+.project__stat {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-status-neutral);
+}
+
+.project__stat--active {
+  background: var(--color-status-active);
+}
+
+.project__stat--done {
+  background: var(--color-status-done);
 }
 
 .project__stat-number {
@@ -515,12 +529,28 @@ async function handleSubmit(payload: {
   margin-bottom: 4px;
 }
 
+.project__stat--active .project__stat-number {
+  color: var(--color-status-active-text);
+}
+
+.project__stat--done .project__stat-number {
+  color: var(--color-status-done-text);
+}
+
 .project__stat-meta {
   font-size: var(--font-size-xxs);
   font-weight: 900;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+
+.project__stat--active .project__stat-meta {
+  color: color-mix(in srgb, var(--color-status-active-text) 70%, transparent);
+}
+
+.project__stat--done .project__stat-meta {
+  color: color-mix(in srgb, var(--color-status-done-text) 70%, transparent);
 }
 
 /* ── View links ── */
