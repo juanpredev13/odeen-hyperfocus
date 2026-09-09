@@ -313,7 +313,7 @@ onUnmounted(() => {
   transition:
     transform 0.15s,
     opacity 0.15s;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
 }
 
 .focus__complete:hover {

@@ -153,7 +153,7 @@ function handleSubmit(): void {
   background: var(--color-surface);
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius-lg);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -350,7 +350,7 @@ function handleSubmit(): void {
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
   font-family: var(--font-family);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .modal__submit:hover {
