@@ -12,12 +12,20 @@
     <IntentionsPlanner class="assistant__planner" />
 
     <div class="assistant__grid">
-      <TodayCard
-        icon="timer"
-        title="Next focus session"
-        :text="`One task, no distractions. Default length: ${defaultSessionMinutes} min.`"
-        badge="Coming soon"
-      />
+      <TodayCard icon="timer" title="Next focus session" :text="focusCardText">
+        <RouterLink
+          v-if="nextFocus"
+          class="assistant__card-link"
+          :to="{ name: 'focus', params: { taskId: nextFocus.task_id } }"
+        >
+          Focus on “{{ nextFocus.text }}”
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </RouterLink>
+        <RouterLink v-else class="assistant__card-link" :to="{ name: 'home' }">
+          Pick a task from a project
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </RouterLink>
+      </TodayCard>
       <TodayCard
         icon="inbox"
         title="Inbox"
@@ -61,6 +69,7 @@ import {
 } from '@/modules/assistant/composables/useAssistantConnections'
 import { useAssistantSettings } from '@/modules/assistant/composables/useAssistantSettings'
 import { useCaptures } from '@/modules/assistant/composables/useCaptures'
+import { useIntentions } from '@/modules/assistant/composables/useIntentions'
 import type { Provider } from '@/modules/assistant/types'
 
 const {
@@ -81,6 +90,19 @@ const today = new Date().toLocaleDateString(undefined, {
 
 const error = computed(() => connectionsError.value ?? settingsError.value)
 const defaultSessionMinutes = computed(() => effectiveSettings().default_session_minutes)
+const { listFor } = useIntentions()
+
+// First open intention of the day that is linked to a task.
+const nextFocus = computed(() => {
+  const next = listFor('day', new Date()).find((i) => !i.done && i.task_id !== null)
+  return next && next.task_id ? { task_id: next.task_id, text: next.text } : null
+})
+
+const focusCardText = computed(() =>
+  nextFocus.value
+    ? `Your next intention, one task at a time. Default length: ${defaultSessionMinutes.value} min.`
+    : `Link a task to today's intentions, or open any task in Focus Mode. Default length: ${defaultSessionMinutes.value} min.`,
+)
 
 onMounted(async () => {
   await Promise.all([fetchConnections(), fetchSettings(), loadCaptures()])
