@@ -16,6 +16,7 @@
     <p v-if="task.description" class="task-card__description">{{ task.description }}</p>
 
     <div class="task-card__meta">
+      <QuadrantBadge :task="task" />
       <span class="task-card__meta-item" :title="`Energy: ${energyLabel}`">
         {{ energyLabel }} energy
       </span>
@@ -28,6 +29,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import QuadrantBadge from '@/modules/tasks/components/QuadrantBadge.vue'
 import type { Task } from '@/modules/tasks/types'
 
 const props = defineProps<{ task: Task }>()
@@ -140,6 +142,8 @@ const energyLabel = computed(() => {
 
 .task-card__meta {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-sm);
 }
 
