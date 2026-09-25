@@ -9,13 +9,9 @@
 
     <p v-if="error" class="assistant__error">{{ error.message }}</p>
 
+    <IntentionsPlanner class="assistant__planner" />
+
     <div class="assistant__grid">
-      <TodayCard
-        icon="flag"
-        title="Intentions"
-        text="Choose up to 3 things you want done by the end of the day."
-        badge="Coming soon"
-      />
       <TodayCard
         icon="timer"
         title="Next focus session"
@@ -51,6 +47,7 @@
 import { computed, onMounted } from 'vue'
 import AssistantNav from '@/modules/assistant/components/AssistantNav.vue'
 import TodayCard from '@/modules/assistant/components/TodayCard.vue'
+import IntentionsPlanner from '@/modules/assistant/components/IntentionsPlanner.vue'
 import ConnectionCard from '@/modules/assistant/components/ConnectionCard.vue'
 import {
   PROVIDERS,
@@ -117,6 +114,10 @@ async function handleDisconnect(provider: Provider): Promise<void> {
   margin-bottom: var(--space-md);
   font-size: var(--font-size-sm);
   color: var(--color-gray-600);
+}
+
+.assistant__planner {
+  margin-bottom: var(--space-md);
 }
 
 .assistant__grid {

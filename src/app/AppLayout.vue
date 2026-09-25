@@ -55,7 +55,10 @@
     </nav>
 
     <main class="app-layout__main">
-      <RouterView />
+      <IntentionsBar />
+      <div class="app-layout__content">
+        <RouterView />
+      </div>
     </main>
   </div>
 </template>
@@ -63,6 +66,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/modules/auth/composables/useAuth'
+import IntentionsBar from '@/modules/assistant/components/IntentionsBar.vue'
 import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
@@ -208,5 +212,12 @@ async function handleSignOut(): Promise<void> {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+.app-layout__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 </style>

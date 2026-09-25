@@ -39,3 +39,32 @@ export interface AssistantResult<T> {
   data: T | null
   error: AssistantError | null
 }
+
+export type IntentionScope = 'day' | 'week' | 'personal'
+
+export type IntentionPosition = 1 | 2 | 3
+
+export interface Intention {
+  id: string
+  user_id: string
+  /** ISO date (YYYY-MM-DD). Monday of the week for `week` scope. */
+  date: string
+  scope: IntentionScope
+  position: IntentionPosition
+  task_id: string | null
+  text: string
+  when_text: string | null
+  where_text: string | null
+  first_action: string | null
+  done: boolean
+  created_at: string
+}
+
+export type CreateIntentionPayload = Pick<
+  Intention,
+  'date' | 'scope' | 'position' | 'task_id' | 'text' | 'when_text' | 'where_text' | 'first_action'
+>
+
+export type UpdateIntentionPayload = Partial<
+  Pick<Intention, 'text' | 'when_text' | 'where_text' | 'first_action' | 'done'>
+> & { id: string }

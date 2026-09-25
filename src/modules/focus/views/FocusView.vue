@@ -6,10 +6,13 @@
         <span class="focus__logo-icon">keyboard_command_key</span>
         <span class="focus__logo-text">Focus Mode</span>
       </div>
-      <button class="focus__exit" @click="handleExit">
-        <span>Exit</span>
-        <span class="material-symbols-outlined">close</span>
-      </button>
+      <div class="focus__header-right">
+        <IntentionsBar collapsed />
+        <button class="focus__exit" @click="handleExit">
+          <span>Exit</span>
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
     </header>
 
     <!-- Main content -->
@@ -73,6 +76,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchTask, updateStatus } from '@/modules/tasks/services/tasks.service'
 import type { Task } from '@/modules/tasks/types'
+import IntentionsBar from '@/modules/assistant/components/IntentionsBar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -142,6 +146,12 @@ onUnmounted(() => {
 
 .focus:hover .focus__header {
   opacity: 1;
+}
+
+.focus__header-right {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
 }
 
 .focus__logo {
