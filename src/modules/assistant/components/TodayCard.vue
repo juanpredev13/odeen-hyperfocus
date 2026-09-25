@@ -9,6 +9,7 @@
     <p class="today-card__text">{{ text }}</p>
 
     <span v-if="badge" class="today-card__badge">{{ badge }}</span>
+    <slot />
   </section>
 </template>
 

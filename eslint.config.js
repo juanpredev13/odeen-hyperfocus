@@ -19,6 +19,7 @@ export default tseslint.config(
         HTMLTextAreaElement: 'readonly',
         HTMLSelectElement: 'readonly',
         Event: 'readonly',
+        KeyboardEvent: 'readonly',
         requestAnimationFrame: 'readonly',
       },
     },
