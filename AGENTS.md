@@ -1,6 +1,6 @@
 # ODEEN — Hyperfocus
 
-ODEEN is a minimalist deep work operating system. POC phase only — no AI, analytics, collaboration, or advanced metrics.
+ODEEN is a minimalist deep work operating system. The core POC excludes AI, analytics, collaboration, and advanced metrics. The one approved exception is the **assistant module** (`src/modules/assistant/`, issue #21 and its sub-issues). It is a personal focus coach, built as an addition alongside the POC modules rather than replacing them.
 
 Full spec: `docs/requirements.md`
 
@@ -156,7 +156,7 @@ All commit messages must follow [Conventional Commits](https://www.conventionalc
 | `ci`       | CI configuration                               |
 | `chore`    | Maintenance tasks, tooling, configs            |
 
-Scopes: `auth`, `projects`, `tasks`, `kanban`, `graph`, `focus`, `ui`, `db`.
+Scopes: `auth`, `projects`, `tasks`, `kanban`, `graph`, `focus`, `assistant`, `ui`, `db`.
 
 ```
 feat(kanban): add drag-and-drop between columns
@@ -350,7 +350,8 @@ gh issue list --search "kanban drag"
 - Use Options API — Composition API only
 - Put business logic in components
 - Create files outside the defined module structure
-- Add features outside POC scope (see `docs/requirements.md` Section 8)
+- Add features outside POC scope (see `docs/requirements.md` Section 8), except assistant-module work tracked in #21 and its sub-issues
+- Commit third-party copyrighted text (e.g. book excerpts or summaries) — this repo is public; assistant reference material lives in private storage
 - Use `any`
 - Skip error handling on Supabase calls
 - Use npm or yarn — use pnpm
