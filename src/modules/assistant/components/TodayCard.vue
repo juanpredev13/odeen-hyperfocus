@@ -53,6 +53,7 @@ defineProps<{
 
 .today-card__value {
   font-size: var(--font-size-h3);
+  line-height: 1;
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
 }
