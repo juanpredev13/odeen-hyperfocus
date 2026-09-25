@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: Required<UpdateAssistantSettingsPayload> = {
     'Headphones on',
   ],
   break_activities: ['Short walk', 'Coffee without phone', 'Stretch', 'Chat with a colleague'],
+  end_sound: true,
 }
 
 const settings = ref<AssistantSettings | null>(null)
@@ -58,9 +59,20 @@ export function useAssistantSettings() {
   /** Saved settings, or defaults when the user has not saved any yet. */
   function effectiveSettings(): Required<UpdateAssistantSettingsPayload> {
     if (!settings.value) return DEFAULT_SETTINGS
-    const { checkin_interval, default_session_minutes, distraction_checklist, break_activities } =
-      settings.value
-    return { checkin_interval, default_session_minutes, distraction_checklist, break_activities }
+    const {
+      checkin_interval,
+      default_session_minutes,
+      distraction_checklist,
+      break_activities,
+      end_sound,
+    } = settings.value
+    return {
+      checkin_interval,
+      default_session_minutes,
+      distraction_checklist,
+      break_activities,
+      end_sound,
+    }
   }
 
   return {

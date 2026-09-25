@@ -8,6 +8,7 @@ export interface AssistantSettings {
   default_session_minutes: number
   distraction_checklist: string[]
   break_activities: string[]
+  end_sound: boolean
   updated_at: string
 }
 
