@@ -24,46 +24,56 @@
         <RouterLink to="/">Go to Projects</RouterLink>
       </div>
 
-      <template v-else>
-        <div class="focus__content">
-          <!-- Status indicator -->
-          <div class="focus__status">
-            <span class="focus__status-dot"></span>
-            <span class="focus__status-text">Focusing...</span>
-          </div>
+      <div v-else class="focus__content">
+        <SessionSetup
+          v-if="phase === 'setup'"
+          :task-title="task.title"
+          :suggested="suggested"
+          :checklist="settings.distraction_checklist"
+          :busy="busy"
+          :error="error?.message"
+          @start="handleStart"
+          @open-settings="showSettings = true"
+        />
 
-          <!-- Task -->
-          <div class="focus__task">
-            <h1 class="focus__task-title">{{ task.title }}</h1>
-            <p v-if="task.description" class="focus__task-desc">{{ task.description }}</p>
-          </div>
+        <SessionRunning
+          v-else-if="(phase === 'running' || phase === 'timeup') && session"
+          :task-title="task.title"
+          :seconds-left="secondsLeft"
+          :time-up="phase === 'timeup'"
+          :refocus-count="session.refocus_count"
+          :session-id="session.id"
+          :busy="busy"
+          @refocus="refocus"
+          @extend="extend"
+          @stop="stop"
+          @complete="handleComplete"
+        />
 
-          <!-- Actions -->
-          <div class="focus__actions">
-            <button class="focus__complete" @click="handleComplete">
-              <span class="material-symbols-outlined">check_circle</span>
-              <span>Mark as Completed</span>
-            </button>
-            <div class="focus__shortcut">
-              <kbd>ESC</kbd>
-              <span>to exit</span>
-            </div>
-          </div>
-        </div>
-      </template>
+        <SessionSummary
+          v-else-if="phase === 'done' && finished"
+          :session="finished"
+          :captures="capturesInSession"
+          :break-activity="breakActivity"
+          @again="reset"
+          @exit="handleExit"
+        />
+      </div>
     </main>
 
     <!-- Footer -->
     <footer class="focus__footer">
       <div class="focus__footer-item">
-        <span class="material-symbols-outlined">music_note</span>
-        <span>Deep Focus</span>
+        <span class="material-symbols-outlined">bolt</span>
+        <span>Alt+C to capture</span>
       </div>
       <div class="focus__footer-item">
-        <span class="material-symbols-outlined">notifications_off</span>
-        <span>Do Not Disturb</span>
+        <span class="material-symbols-outlined">keyboard_return</span>
+        <span>Esc to exit</span>
       </div>
     </footer>
+
+    <SessionSettingsModal v-if="showSettings" @close="showSettings = false" />
 
     <!-- Ambient glow -->
     <div class="focus__glow focus__glow--left"></div>
@@ -72,42 +82,87 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchTask, updateStatus } from '@/modules/tasks/services/tasks.service'
 import type { Task } from '@/modules/tasks/types'
 import IntentionsBar from '@/modules/assistant/components/IntentionsBar.vue'
+import { useAssistantSettings } from '@/modules/assistant/composables/useAssistantSettings'
+import SessionSetup from '@/modules/focus/components/SessionSetup.vue'
+import SessionRunning from '@/modules/focus/components/SessionRunning.vue'
+import SessionSummary from '@/modules/focus/components/SessionSummary.vue'
+import SessionSettingsModal from '@/modules/focus/components/SessionSettingsModal.vue'
+import { useFocusSession } from '@/modules/focus/composables/useFocusSession'
+import { pickBreakActivity } from '@/modules/focus/composables/sessionHelpers'
+import { playEndChime } from '@/modules/focus/composables/endSound'
 
 const route = useRoute()
 const router = useRouter()
 
 const task = ref<Task | null>(null)
 const loading = ref(true)
+const showSettings = ref(false)
 
 const taskId = route.params.taskId as string
 
+const { fetchSettings, effectiveSettings } = useAssistantSettings()
+const settings = computed(() => effectiveSettings())
+
+const {
+  phase,
+  session,
+  finished,
+  capturesInSession,
+  secondsLeft,
+  error,
+  busy,
+  init,
+  start,
+  refocus,
+  extend,
+  stop,
+  reset,
+  suggestedMinutes,
+} = useFocusSession({
+  onTimeUp: () => {
+    if (settings.value.end_sound) playEndChime()
+  },
+})
+
+const suggested = computed(() => suggestedMinutes(settings.value.default_session_minutes))
+const breakActivity = computed(() =>
+  pickBreakActivity(settings.value.break_activities, finished.value?.refocus_count ?? 0),
+)
+
 onMounted(async () => {
-  const result = await fetchTask(taskId)
+  const [result] = await Promise.all([fetchTask(taskId), fetchSettings()])
   if (result.data) {
     task.value = result.data
+    await init(taskId)
   }
   loading.value = false
 })
 
-function handleExit(): void {
+async function handleStart(minutes: number): Promise<void> {
+  await start(taskId, minutes)
+}
+
+/** Leaving Focus Mode ends a running session so its time is logged. */
+async function handleExit(): Promise<void> {
+  if (phase.value === 'running' || phase.value === 'timeup') await stop()
   router.back()
 }
 
 async function handleComplete(): Promise<void> {
   if (!task.value) return
+  if (phase.value === 'running' || phase.value === 'timeup') await stop()
   await updateStatus(task.value.id, 'done')
   router.back()
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function handleKeydown(e: any): void {
-  if (e.key === 'Escape') {
-    handleExit()
+function handleKeydown(e: KeyboardEvent): void {
+  if (e.key === 'Escape' && !showSettings.value) {
+    void handleExit()
   }
 }
 
@@ -241,132 +296,6 @@ onUnmounted(() => {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* Status */
-.focus__status {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-}
-
-.focus__status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-}
-
-.focus__status-text {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--color-gray-400);
-}
-
-/* Task */
-.focus__task {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.focus__task-title {
-  font-size: clamp(2.5rem, 6vw, 4rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  color: var(--color-primary);
-  margin-bottom: 1rem;
-}
-
-.focus__task-desc {
-  font-size: var(--font-size-lg);
-  font-weight: 400;
-  color: var(--color-gray-400);
-  max-width: 480px;
-  line-height: 1.6;
-}
-
-/* Actions */
-.focus__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.focus__complete {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 2rem;
-  background: var(--color-primary);
-  color: var(--color-surface);
-  border: none;
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-body);
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    transform 0.15s,
-    opacity 0.15s;
-  box-shadow: var(--shadow-lg);
-}
-
-.focus__complete:hover {
-  transform: scale(1.02);
-  opacity: 0.9;
-}
-
-.focus__complete:active {
-  transform: scale(0.98);
-}
-
-.focus__complete .material-symbols-outlined {
-  font-size: 22px;
-  transition: transform 0.2s;
-}
-
-.focus__complete:hover .material-symbols-outlined {
-  transform: rotate(12deg);
-}
-
-.focus__shortcut {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--color-gray-300);
-  padding: 1rem 0;
-}
-
-.focus__shortcut kbd {
-  padding: 0.25rem 0.5rem;
-  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 10%, transparent);
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  font-family: var(--font-family);
-}
-
-.focus__shortcut span {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 
 /* Footer */

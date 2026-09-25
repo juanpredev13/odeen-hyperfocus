@@ -41,6 +41,16 @@
       </dl>
     </div>
 
+    <RouterLink
+      v-if="intention.task_id && !intention.done"
+      class="intention-item__focus"
+      :to="{ name: 'focus', params: { taskId: intention.task_id } }"
+      :aria-label="`Focus on “${intention.text}”`"
+      title="Start a focus session"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">center_focus_strong</span>
+    </RouterLink>
+
     <button
       class="intention-item__remove"
       type="button"
@@ -187,6 +197,29 @@ const hasDetails = computed(
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--color-gray-500);
+}
+
+.intention-item__focus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  color: var(--color-gray-400);
+  text-decoration: none;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+}
+
+.intention-item__focus:hover {
+  color: var(--color-primary);
+  background-color: var(--color-background);
+}
+
+.intention-item__focus .material-symbols-outlined {
+  font-size: 16px;
 }
 
 .intention-item__remove {
