@@ -71,9 +71,12 @@ import {
   isValidCaptureText,
   parseQuickCapture,
 } from '@/modules/assistant/composables/captureHelpers'
+import { useActiveSessionId } from '@/modules/focus/composables/useFocusSession'
 import type { CaptureKind } from '@/modules/assistant/types'
 
 const { capture, error } = useCaptures()
+// Captures made during a running focus session are linked to it.
+const activeSessionId = useActiveSessionId()
 
 const open = ref(false)
 const text = ref('')
@@ -109,7 +112,7 @@ function pickKind(k: CaptureKind): void {
 async function save(): Promise<void> {
   if (!canSave.value || saving.value) return
   saving.value = true
-  const saved = await capture(text.value, kind.value)
+  const saved = await capture(text.value, kind.value, activeSessionId.value)
   saving.value = false
   if (!saved) return
   status.value = `Captured as ${getKindInfo(saved.kind).label.toLowerCase()}`
