@@ -156,7 +156,13 @@ function onDrop(e: Event): void {
   max-width: 480px;
   background: var(--color-surface);
   border-width: 2px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Dark: brutalist — thicker outlined block instead of shadow-based lift. */
+:root[data-theme='dark'] .kcol--doing {
+  border-width: 3px;
+  border-color: var(--color-primary);
 }
 
 /* Done column: slightly faded */
@@ -217,7 +223,7 @@ function onDrop(e: Event): void {
   width: 8px;
   height: 8px;
   border-radius: var(--radius-full);
-  background: #22c55e;
+  background: var(--color-status-done-dot);
   animation: pulse 2s infinite;
 }
 
@@ -228,6 +234,12 @@ function onDrop(e: Event): void {
   }
   50% {
     opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kcol__pulse {
+    animation: none;
   }
 }
 
@@ -246,15 +258,15 @@ function onDrop(e: Event): void {
 }
 
 .kcol__wip--warn {
-  background: #fff7ed;
-  border-color: #fed7aa;
-  color: #c2410c;
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-text);
 }
 
 .kcol__wip--full {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #dc2626;
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger-text);
 }
 
 .kcol__wip-icon {

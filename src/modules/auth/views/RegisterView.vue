@@ -135,12 +135,12 @@ async function handleSubmit(): Promise<void> {
 
 .auth-form__error {
   font-size: var(--font-size-sm);
-  color: #dc2626;
+  color: var(--color-danger-text);
 }
 
 .auth-form__success {
   font-size: var(--font-size-sm);
-  color: #16a34a;
+  color: var(--color-status-done-text);
 }
 
 .auth-form__submit {

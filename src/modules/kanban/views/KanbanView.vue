@@ -18,8 +18,12 @@
     <template v-else>
       <header class="kanban-header">
         <div class="kanban-header__left">
-          <RouterLink class="kanban-header__back" :to="`/project/${toSlug(selectedProject.name)}`">
-            <span class="material-symbols-outlined">arrow_back</span>
+          <RouterLink
+            class="kanban-header__back"
+            :to="`/project/${toSlug(selectedProject.name)}`"
+            aria-label="Back to project"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
           </RouterLink>
           <div>
             <h2 class="kanban-header__title">{{ selectedProject.name }}</h2>
@@ -84,7 +88,7 @@ import {
 import KanbanColumn from '@/modules/kanban/components/KanbanColumn.vue'
 import TaskForm from '@/modules/tasks/components/TaskForm.vue'
 import type { Project } from '@/modules/projects/types'
-import type { Task, TaskStatus } from '@/modules/tasks/types'
+import type { Task, TaskStatus, EnergyLevel, ImpactScore } from '@/modules/tasks/types'
 
 const WIP_LIMIT = 3
 
@@ -176,6 +180,8 @@ async function handleSubmit(payload: {
   title: string
   description: string | null
   status: TaskStatus
+  energy_level: EnergyLevel
+  impact_score: ImpactScore
 }): Promise<void> {
   if (!selectedProject.value) return
   saving.value = true
@@ -385,8 +391,8 @@ async function handleDelete(id: string): Promise<void> {
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%);
-  background: #dc2626;
-  color: white;
+  background: var(--color-danger);
+  color: #ffffff;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   padding: 0.75rem 1.5rem;

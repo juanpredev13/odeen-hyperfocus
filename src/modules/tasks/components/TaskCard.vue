@@ -15,6 +15,14 @@
     <h3 class="task-card__title">{{ task.title }}</h3>
     <p v-if="task.description" class="task-card__description">{{ task.description }}</p>
 
+    <div class="task-card__meta">
+      <span class="task-card__meta-item" :title="`Energy: ${energyLabel}`">
+        {{ energyLabel }} energy
+      </span>
+      <span class="task-card__meta-item" :title="`Impact score: ${task.impact_score}`">
+        Impact {{ task.impact_score }}
+      </span>
+    </div>
   </div>
 </template>
 
@@ -32,6 +40,11 @@ defineEmits<{
 const statusLabel = computed(() => {
   const labels: Record<string, string> = { todo: 'To Do', doing: 'Doing', done: 'Done' }
   return labels[props.task.status]
+})
+
+const energyLabel = computed(() => {
+  const labels: Record<number, string> = { 1: 'Low', 2: 'Medium', 3: 'High' }
+  return labels[props.task.energy_level]
 })
 </script>
 
@@ -104,8 +117,8 @@ const statusLabel = computed(() => {
 }
 
 .task-card__btn--danger:hover {
-  color: #dc2626;
-  background-color: #fef2f2;
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
 }
 
 .task-card__btn .material-symbols-outlined {
@@ -123,6 +136,20 @@ const statusLabel = computed(() => {
   font-size: var(--font-size-sm);
   color: var(--color-gray-500);
   line-height: var(--leading-relaxed);
+}
+
+.task-card__meta {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.task-card__meta-item {
+  font-size: var(--font-size-xxs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-400);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-xs);
 }
 
 </style>

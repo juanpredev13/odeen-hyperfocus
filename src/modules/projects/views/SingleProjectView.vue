@@ -96,11 +96,11 @@
         <div class="project__sidebar-section">
           <h3 class="project__sidebar-label">Overview</h3>
           <div class="project__stats">
-            <div class="project__stat">
+            <div class="project__stat project__stat--active">
               <p class="project__stat-number">{{ tasks.length }}</p>
               <p class="project__stat-meta">Total Tasks</p>
             </div>
-            <div class="project__stat">
+            <div class="project__stat project__stat--done">
               <p class="project__stat-number">{{ doneTasks.length }}</p>
               <p class="project__stat-meta">Done</p>
             </div>
@@ -160,7 +160,7 @@ import { useProjects } from '@/modules/projects/composables/useProjects'
 import { useTasks } from '@/modules/tasks/composables/useTasks'
 import TaskForm from '@/modules/tasks/components/TaskForm.vue'
 import type { Project } from '@/modules/projects/types'
-import type { Task, TaskStatus } from '@/modules/tasks/types'
+import type { Task, TaskStatus, EnergyLevel, ImpactScore } from '@/modules/tasks/types'
 
 const route = useRoute()
 const { projects, fetchProjects } = useProjects()
@@ -219,6 +219,8 @@ async function handleSubmit(payload: {
   title: string
   description: string | null
   status: TaskStatus
+  energy_level: EnergyLevel
+  impact_score: ImpactScore
 }): Promise<void> {
   if (editingTask.value) {
     await updateTask({ id: editingTask.value.id, ...payload })
@@ -321,7 +323,7 @@ async function handleSubmit(payload: {
 /* ── Body ── */
 .project__error {
   font-size: var(--font-size-sm);
-  color: #dc2626;
+  color: var(--color-danger-text);
   margin-bottom: var(--space-md);
 }
 
@@ -463,8 +465,8 @@ async function handleSubmit(payload: {
 }
 
 .project__task-btn--danger:hover {
-  color: #dc2626;
-  background-color: #fef2f2;
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
 }
 
 .project__task-btn .material-symbols-outlined {
@@ -501,7 +503,21 @@ async function handleSubmit(payload: {
 .project__stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: var(--space-sm);
+}
+
+.project__stat {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-status-neutral);
+}
+
+.project__stat--active {
+  background: var(--color-status-active);
+}
+
+.project__stat--done {
+  background: var(--color-status-done);
 }
 
 .project__stat-number {
@@ -513,12 +529,28 @@ async function handleSubmit(payload: {
   margin-bottom: 4px;
 }
 
+.project__stat--active .project__stat-number {
+  color: var(--color-status-active-text);
+}
+
+.project__stat--done .project__stat-number {
+  color: var(--color-status-done-text);
+}
+
 .project__stat-meta {
   font-size: var(--font-size-xxs);
   font-weight: 900;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+
+.project__stat--active .project__stat-meta {
+  color: color-mix(in srgb, var(--color-status-active-text) 70%, transparent);
+}
+
+.project__stat--done .project__stat-meta {
+  color: color-mix(in srgb, var(--color-status-done-text) 70%, transparent);
 }
 
 /* ── View links ── */

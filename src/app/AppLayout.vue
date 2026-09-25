@@ -30,9 +30,19 @@
       </div>
 
       <div class="nav__bottom">
+        <button
+          class="nav__signout"
+          :aria-label="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+          @click="toggleTheme"
+        >
+          <span class="material-symbols-outlined nav__link-icon" aria-hidden="true">
+            {{ theme === 'dark' ? 'light_mode' : 'dark_mode' }}
+          </span>
+          {{ theme === 'dark' ? 'Light mode' : 'Dark mode' }}
+        </button>
         <p v-if="user" class="nav__user">{{ user.email }}</p>
         <button class="nav__signout" @click="handleSignOut">
-          <span class="material-symbols-outlined nav__link-icon">logout</span>
+          <span class="material-symbols-outlined nav__link-icon" aria-hidden="true">logout</span>
           Sign out
         </button>
       </div>
@@ -47,9 +57,11 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/modules/auth/composables/useAuth'
+import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
 const { user, signOut } = useAuth()
+const { theme, toggleTheme } = useTheme()
 
 async function handleSignOut(): Promise<void> {
   await signOut()

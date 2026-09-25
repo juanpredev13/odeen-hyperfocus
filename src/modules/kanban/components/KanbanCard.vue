@@ -27,19 +27,26 @@
           v-if="featured"
           class="kcard__btn kcard__btn--focus"
           title="Focus"
+          aria-label="Focus on this task"
           @click.stop="$emit('focus', task)"
         >
-          <span class="material-symbols-outlined">center_focus_strong</span>
+          <span class="material-symbols-outlined" aria-hidden="true">center_focus_strong</span>
         </button>
-        <button class="kcard__btn" title="Edit" @click.stop="$emit('edit', task)">
-          <span class="material-symbols-outlined">edit</span>
+        <button
+          class="kcard__btn"
+          title="Edit"
+          aria-label="Edit task"
+          @click.stop="$emit('edit', task)"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">edit</span>
         </button>
         <button
           class="kcard__btn kcard__btn--danger"
           title="Delete"
+          aria-label="Delete task"
           @click.stop="$emit('delete', task.id)"
         >
-          <span class="material-symbols-outlined">delete</span>
+          <span class="material-symbols-outlined" aria-hidden="true">delete</span>
         </button>
       </div>
     </template>
@@ -102,6 +109,17 @@ function onDragEnd(): void {
   box-shadow: var(--shadow-sm);
 }
 
+/* Dark: brutalist — border always visible, hover snaps to a hard outline
+   instead of a soft shadow. */
+:root[data-theme='dark'] .kcard {
+  border-color: var(--border-color);
+}
+
+:root[data-theme='dark'] .kcard:hover {
+  border-color: var(--color-primary);
+  box-shadow: none;
+}
+
 .kcard:active {
   cursor: grabbing;
 }
@@ -124,22 +142,33 @@ function onDragEnd(): void {
   border-color: transparent;
 }
 
+/* Dark: brutalist — hard border instead of shadow-based lift, no glow. */
+:root[data-theme='dark'] .kcard--featured {
+  border-color: var(--color-primary);
+  box-shadow: none;
+}
+
+:root[data-theme='dark'] .kcard--featured:hover {
+  box-shadow: none;
+  border-color: var(--color-primary);
+}
+
 .kcard--featured .kcard__title {
   color: var(--color-surface);
   font-size: var(--font-size-h3);
 }
 
 .kcard--featured .kcard__desc {
-  color: rgba(255, 255, 255, 0.65);
+  color: color-mix(in srgb, var(--color-surface) 65%, transparent);
 }
 
 .kcard--featured .kcard__btn {
-  color: rgba(255, 255, 255, 0.4);
+  color: color-mix(in srgb, var(--color-surface) 40%, transparent);
 }
 
 .kcard--featured .kcard__btn:hover {
   color: var(--color-surface);
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: color-mix(in srgb, var(--color-surface) 10%, transparent);
 }
 
 /* ── Done card ── */
@@ -163,7 +192,7 @@ function onDragEnd(): void {
 .kcard__done-icon {
   font-family: 'Material Symbols Outlined';
   font-size: 18px;
-  color: #22c55e;
+  color: var(--color-status-done-dot);
   font-variation-settings: 'FILL' 1;
   flex-shrink: 0;
 }
@@ -207,10 +236,11 @@ function onDragEnd(): void {
 }
 
 .kcard--featured .kcard__actions {
-  border-top-color: rgba(255, 255, 255, 0.1);
+  border-top-color: color-mix(in srgb, var(--color-surface) 10%, transparent);
 }
 
-.kcard:hover .kcard__actions {
+.kcard:hover .kcard__actions,
+.kcard:focus-within .kcard__actions {
   opacity: 1;
 }
 
@@ -236,8 +266,8 @@ function onDragEnd(): void {
 }
 
 .kcard__btn--danger:hover {
-  color: #dc2626;
-  background-color: #fef2f2;
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-bg);
 }
 
 .kcard__btn--focus:hover {
