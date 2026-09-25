@@ -56,6 +56,21 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/tasks/views/TasksView.vue'),
       },
       {
+        path: 'assistant',
+        name: 'assistant',
+        component: () => import('@/modules/assistant/views/AssistantView.vue'),
+      },
+      {
+        path: 'assistant/inbox',
+        name: 'assistant-inbox',
+        component: () => import('@/modules/assistant/views/CaptureInboxView.vue'),
+      },
+      {
+        path: 'assistant/review',
+        name: 'assistant-review',
+        component: () => import('@/modules/assistant/views/WeeklyReviewView.vue'),
+      },
+      {
         path: 'design-system',
         name: 'design-system',
         component: () => import('@/modules/projects/views/DesignSystemView.vue'),
