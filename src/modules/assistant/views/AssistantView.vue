@@ -22,9 +22,13 @@
         icon="inbox"
         title="Inbox"
         text="Distractions, open loops and ideas you captured, waiting to be processed."
-        :value="0"
-        badge="Coming soon"
-      />
+        :value="inboxCount"
+      >
+        <RouterLink class="assistant__card-link" :to="{ name: 'assistant-inbox' }">
+          {{ inboxCount > 0 ? 'Process inbox' : 'Open inbox' }}
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </RouterLink>
+      </TodayCard>
     </div>
 
     <section class="assistant__section">
@@ -54,6 +58,7 @@ import {
   useAssistantConnections,
 } from '@/modules/assistant/composables/useAssistantConnections'
 import { useAssistantSettings } from '@/modules/assistant/composables/useAssistantSettings'
+import { useCaptures } from '@/modules/assistant/composables/useCaptures'
 import type { Provider } from '@/modules/assistant/types'
 
 const {
@@ -64,6 +69,7 @@ const {
   disconnect,
 } = useAssistantConnections()
 const { error: settingsError, fetchSettings, effectiveSettings } = useAssistantSettings()
+const { inboxCount, load: loadCaptures } = useCaptures()
 
 const today = new Date().toLocaleDateString(undefined, {
   weekday: 'long',
@@ -75,7 +81,7 @@ const error = computed(() => connectionsError.value ?? settingsError.value)
 const defaultSessionMinutes = computed(() => effectiveSettings().default_session_minutes)
 
 onMounted(async () => {
-  await Promise.all([fetchConnections(), fetchSettings()])
+  await Promise.all([fetchConnections(), fetchSettings(), loadCaptures()])
 })
 
 async function handleDisconnect(provider: Provider): Promise<void> {
@@ -125,6 +131,25 @@ async function handleDisconnect(provider: Provider): Promise<void> {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
+}
+
+.assistant__card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  align-self: flex-start;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.assistant__card-link:hover {
+  text-decoration: underline;
+}
+
+.assistant__card-link .material-symbols-outlined {
+  font-size: 16px;
 }
 
 .assistant__section-title {
