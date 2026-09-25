@@ -137,7 +137,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
   position: fixed;
   right: var(--space-lg);
   bottom: var(--space-lg);
-  z-index: 90;
+  z-index: 1050; /* above Focus Mode (1000), below its settings modal (1100) */
   display: flex;
   flex-direction: column;
   align-items: flex-end;

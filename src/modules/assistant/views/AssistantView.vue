@@ -29,6 +29,7 @@
           <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
         </RouterLink>
       </TodayCard>
+      <CheckinCard />
     </div>
 
     <section class="assistant__section">
@@ -52,6 +53,7 @@ import { computed, onMounted } from 'vue'
 import AssistantNav from '@/modules/assistant/components/AssistantNav.vue'
 import TodayCard from '@/modules/assistant/components/TodayCard.vue'
 import IntentionsPlanner from '@/modules/assistant/components/IntentionsPlanner.vue'
+import CheckinCard from '@/modules/assistant/components/CheckinCard.vue'
 import ConnectionCard from '@/modules/assistant/components/ConnectionCard.vue'
 import {
   PROVIDERS,

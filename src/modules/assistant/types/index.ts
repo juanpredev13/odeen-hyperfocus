@@ -97,3 +97,22 @@ export interface CaptureKindInfo {
   /** Prefix recognised by quick capture, e.g. "idea: ..." */
   prefix: string
 }
+
+export type SpaceFullness = 1 | 2 | 3
+
+export type EnergyRating = 1 | 2 | 3 | 4 | 5
+
+export interface AwarenessCheckin {
+  id: string
+  user_id: string
+  at: string
+  intentional: boolean | null
+  on_consequential: boolean | null
+  space_fullness: SpaceFullness | null
+  energy: EnergyRating | null
+}
+
+export type CheckinAnswers = Pick<
+  AwarenessCheckin,
+  'intentional' | 'on_consequential' | 'space_fullness' | 'energy'
+>
