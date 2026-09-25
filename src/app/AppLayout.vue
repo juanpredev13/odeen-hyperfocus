@@ -21,6 +21,12 @@
             </RouterLink>
           </li>
           <li>
+            <RouterLink class="nav__link" to="/assistant">
+              <span class="material-symbols-outlined nav__link-icon">self_improvement</span>
+              Assistant
+            </RouterLink>
+          </li>
+          <li>
             <RouterLink class="nav__link" to="/design-system">
               <span class="material-symbols-outlined nav__link-icon">palette</span>
               Design System
