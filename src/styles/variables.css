@@ -85,6 +85,17 @@
   --color-danger-bg: #fef2f2;
   --color-danger-border: #fecaca;
   --color-danger-text: #dc2626;
+
+  /* Task quadrants (#30) — aliases of status tokens. Resolved on the root
+     element, so they pick up the [data-theme='dark'] values automatically. */
+  --color-quadrant-purposeful-dot: var(--color-status-done-dot);
+  --color-quadrant-purposeful-text: var(--color-status-done-text);
+  --color-quadrant-necessary-dot: var(--color-status-focus-dot);
+  --color-quadrant-necessary-text: var(--color-status-focus-text);
+  --color-quadrant-distracting-dot: var(--color-warning-text);
+  --color-quadrant-distracting-text: var(--color-warning-text);
+  --color-quadrant-unnecessary-dot: var(--color-status-neutral-dot);
+  --color-quadrant-unnecessary-text: var(--color-gray-500);
 }
 
 /* ── Dark theme ──

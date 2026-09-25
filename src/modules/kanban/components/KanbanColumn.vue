@@ -24,17 +24,17 @@
         v-if="status === 'doing'"
         class="kcol__wip"
         :class="{
-          'kcol__wip--warn': tasks.length >= 2 && tasks.length < WIP_LIMIT,
-          'kcol__wip--full': tasks.length >= WIP_LIMIT,
+          'kcol__wip--warn': wipCount >= 2 && wipCount < WIP_LIMIT,
+          'kcol__wip--full': wipCount >= WIP_LIMIT,
         }"
       >
-        <span v-if="tasks.length >= WIP_LIMIT" class="kcol__wip-icon">warning</span>
+        <span v-if="wipCount >= WIP_LIMIT" class="kcol__wip-icon">warning</span>
         <span class="kcol__wip-text">
           {{
-            tasks.length >= WIP_LIMIT ? 'Limit Reached' : tasks.length >= 2 ? 'Limit Near' : 'WIP'
+            wipCount >= WIP_LIMIT ? 'Limit Reached' : wipCount >= 2 ? 'Limit Near' : 'WIP'
           }}
         </span>
-        <span class="kcol__wip-ratio">{{ tasks.length }} / {{ WIP_LIMIT }}</span>
+        <span class="kcol__wip-ratio">{{ wipCount }} / {{ WIP_LIMIT }}</span>
       </div>
     </div>
 
@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import KanbanCard from './KanbanCard.vue'
 import type { Task, TaskStatus } from '@/modules/tasks/types'
 
@@ -81,6 +81,8 @@ const props = defineProps<{
   status: TaskStatus
   label: string
   tasks: Task[]
+  /** Unfiltered task count for the WIP limit; defaults to `tasks.length`. */
+  totalCount?: number
   isDraggingActive: boolean
 }>()
 
@@ -93,6 +95,8 @@ const emit = defineEmits<{
   dragend: []
   focus: [task: Task]
 }>()
+
+const wipCount = computed(() => props.totalCount ?? props.tasks.length)
 
 const isDragOver = ref(false)
 let dragEnterCount = 0

@@ -62,7 +62,29 @@
                 <option :value="5">5</option>
               </select>
             </div>
+
+            <div class="modal__meta-field">
+              <span id="enjoyable-label" class="modal__meta-label">Enjoyable?</span>
+              <label class="modal__toggle">
+                <input
+                  v-model="form.is_attractive"
+                  class="modal__toggle-input"
+                  type="checkbox"
+                  role="switch"
+                  aria-labelledby="enjoyable-label"
+                />
+                <span class="modal__toggle-track" aria-hidden="true">
+                  <span class="modal__toggle-thumb" />
+                </span>
+                <span class="modal__toggle-text">{{ form.is_attractive ? 'Yes' : 'No' }}</span>
+              </label>
+            </div>
           </div>
+
+          <p class="modal__quadrant">
+            <QuadrantBadge :task="form" />
+            <span class="modal__quadrant-hint">{{ quadrantHint }}</span>
+          </p>
 
           <p v-if="error" class="modal__error">{{ error }}</p>
         </div>
@@ -89,8 +111,16 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
-import type { Task, TaskStatus, EnergyLevel, ImpactScore } from '@/modules/tasks/types'
+import { computed, reactive } from 'vue'
+import QuadrantBadge from '@/modules/tasks/components/QuadrantBadge.vue'
+import { getQuadrantInfo, getTaskQuadrant } from '@/modules/tasks/composables/useTaskQuadrant'
+import type {
+  Task,
+  TaskFormPayload,
+  TaskStatus,
+  EnergyLevel,
+  ImpactScore,
+} from '@/modules/tasks/types'
 
 const props = defineProps<{
   task?: Task
@@ -100,13 +130,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [payload: {
-    title: string
-    description: string | null
-    status: TaskStatus
-    energy_level: EnergyLevel
-    impact_score: ImpactScore
-  }]
+  submit: [payload: TaskFormPayload]
   cancel: []
 }>()
 
@@ -116,7 +140,10 @@ const form = reactive({
   status: (props.task?.status ?? 'todo') as TaskStatus,
   energy_level: (props.task?.energy_level ?? 1) as EnergyLevel,
   impact_score: (props.task?.impact_score ?? 1) as ImpactScore,
+  is_attractive: props.task?.is_attractive ?? false,
 })
+
+const quadrantHint = computed(() => getQuadrantInfo(getTaskQuadrant(form)).description)
 
 function handleSubmit(): void {
   if (!form.title.trim()) return
@@ -126,6 +153,7 @@ function handleSubmit(): void {
     status: form.status,
     energy_level: form.energy_level,
     impact_score: form.impact_score,
+    is_attractive: form.is_attractive,
   })
 }
 </script>
@@ -254,6 +282,7 @@ function handleSubmit(): void {
 /* ── Meta row ── */
 .modal__meta {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-md);
   padding-top: var(--space-sm);
   border-top: var(--border-width) solid var(--border-color);
@@ -287,6 +316,76 @@ function handleSubmit(): void {
 
 .modal__select:focus {
   border-color: var(--color-primary);
+}
+
+/* ── Enjoyable toggle ── */
+.modal__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 30px;
+  cursor: pointer;
+}
+
+.modal__toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.modal__toggle-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--color-background);
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.modal__toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-gray-400);
+  transition: transform 0.15s, background-color 0.15s;
+}
+
+.modal__toggle-input:checked + .modal__toggle-track {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.modal__toggle-input:checked + .modal__toggle-track .modal__toggle-thumb {
+  transform: translateX(14px);
+  background: var(--color-surface);
+}
+
+.modal__toggle-input:focus-visible + .modal__toggle-track {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.modal__toggle-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+}
+
+/* ── Quadrant preview ── */
+.modal__quadrant {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.modal__quadrant-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-400);
 }
 
 /* ── Error ── */

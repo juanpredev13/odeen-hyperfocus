@@ -11,6 +11,7 @@ export interface Task {
   status: TaskStatus
   energy_level: EnergyLevel
   impact_score: ImpactScore
+  is_attractive: boolean
   position_x: number | null
   position_y: number | null
   created_at: string
@@ -18,8 +19,20 @@ export interface Task {
 
 export type CreateTaskPayload = Pick<
   Task,
-  'project_id' | 'title' | 'description' | 'status' | 'energy_level' | 'impact_score'
+  | 'project_id'
+  | 'title'
+  | 'description'
+  | 'status'
+  | 'energy_level'
+  | 'impact_score'
+  | 'is_attractive'
 >
+
+/** Fields edited through TaskForm. */
+export type TaskFormPayload = Omit<CreateTaskPayload, 'project_id'>
+
+/** Productive × attractive grid used to steer time toward high-value work. */
+export type TaskQuadrant = 'necessary' | 'purposeful' | 'unnecessary' | 'distracting'
 
 export type UpdateTaskPayload = Partial<
   Omit<Task, 'id' | 'project_id' | 'created_at'>

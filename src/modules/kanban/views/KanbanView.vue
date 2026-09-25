@@ -36,13 +36,43 @@
         </button>
       </header>
 
+      <div class="kanban-filter" role="group" aria-label="Filter tasks by quadrant">
+        <button
+          class="kanban-filter__chip"
+          :class="{ 'kanban-filter__chip--active': quadrantFilter === null }"
+          type="button"
+          :aria-pressed="quadrantFilter === null"
+          @click="quadrantFilter = null"
+        >
+          All
+        </button>
+        <button
+          v-for="q in QUADRANTS"
+          :key="q.id"
+          class="kanban-filter__chip"
+          :class="[
+            `kanban-filter__chip--${q.id}`,
+            { 'kanban-filter__chip--active': quadrantFilter === q.id },
+          ]"
+          type="button"
+          :title="q.description"
+          :aria-pressed="quadrantFilter === q.id"
+          @click="quadrantFilter = quadrantFilter === q.id ? null : q.id"
+        >
+          <span class="kanban-filter__dot" aria-hidden="true" />
+          {{ q.label }}
+          <span class="kanban-filter__count">{{ quadrantCounts[q.id] }}</span>
+        </button>
+      </div>
+
       <div class="kanban-board">
         <KanbanColumn
           v-for="col in COLUMNS"
           :key="col.status"
           :status="col.status"
           :label="col.label"
-          :tasks="tasksByStatus[col.status]"
+          :tasks="visibleByStatus[col.status]"
+          :total-count="tasksByStatus[col.status].length"
           :is-dragging-active="draggingTaskId !== null"
           @drop="handleDrop"
           @edit="startEdit"
@@ -88,7 +118,12 @@ import {
 import KanbanColumn from '@/modules/kanban/components/KanbanColumn.vue'
 import TaskForm from '@/modules/tasks/components/TaskForm.vue'
 import type { Project } from '@/modules/projects/types'
-import type { Task, TaskStatus, EnergyLevel, ImpactScore } from '@/modules/tasks/types'
+import {
+  QUADRANTS,
+  filterByQuadrant,
+  getTaskQuadrant,
+} from '@/modules/tasks/composables/useTaskQuadrant'
+import type { Task, TaskFormPayload, TaskQuadrant, TaskStatus } from '@/modules/tasks/types'
 
 const WIP_LIMIT = 3
 
@@ -141,6 +176,25 @@ const tasksByStatus = computed<Record<TaskStatus, Task[]>>(() => ({
   done: tasks.value.filter((t) => t.status === 'done'),
 }))
 
+const quadrantFilter = ref<TaskQuadrant | null>(null)
+
+const visibleByStatus = computed<Record<TaskStatus, Task[]>>(() => ({
+  todo: filterByQuadrant(tasksByStatus.value.todo, quadrantFilter.value),
+  doing: filterByQuadrant(tasksByStatus.value.doing, quadrantFilter.value),
+  done: filterByQuadrant(tasksByStatus.value.done, quadrantFilter.value),
+}))
+
+const quadrantCounts = computed<Record<TaskQuadrant, number>>(() => {
+  const counts: Record<TaskQuadrant, number> = {
+    purposeful: 0,
+    necessary: 0,
+    distracting: 0,
+    unnecessary: 0,
+  }
+  for (const t of tasks.value) counts[getTaskQuadrant(t)]++
+  return counts
+})
+
 const totalCount = computed(() => tasks.value.length)
 const doneCount = computed(() => tasksByStatus.value.done.length)
 const wipOverload = computed(() => tasksByStatus.value.doing.length >= WIP_LIMIT)
@@ -176,13 +230,7 @@ function closeForm(): void {
   formError.value = undefined
 }
 
-async function handleSubmit(payload: {
-  title: string
-  description: string | null
-  status: TaskStatus
-  energy_level: EnergyLevel
-  impact_score: ImpactScore
-}): Promise<void> {
+async function handleSubmit(payload: TaskFormPayload): Promise<void> {
   if (!selectedProject.value) return
   saving.value = true
   formError.value = undefined
@@ -383,6 +431,70 @@ async function handleDelete(id: string): Promise<void> {
   overflow-x: auto;
   overflow-y: hidden;
   min-height: 0;
+}
+
+/* ── Quadrant filter ── */
+.kanban-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-md) 2rem 0;
+  flex-shrink: 0;
+}
+
+.kanban-filter__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-500);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.kanban-filter__chip:hover {
+  color: var(--color-primary);
+  border-color: var(--color-gray-400);
+}
+
+.kanban-filter__chip--active {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.kanban-filter__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+}
+
+.kanban-filter__chip--purposeful .kanban-filter__dot {
+  background-color: var(--color-quadrant-purposeful-dot);
+}
+
+.kanban-filter__chip--necessary .kanban-filter__dot {
+  background-color: var(--color-quadrant-necessary-dot);
+}
+
+.kanban-filter__chip--distracting .kanban-filter__dot {
+  background-color: var(--color-quadrant-distracting-dot);
+}
+
+.kanban-filter__chip--unnecessary .kanban-filter__dot {
+  background-color: var(--color-quadrant-unnecessary-dot);
+}
+
+.kanban-filter__count {
+  font-family: monospace;
+  color: var(--color-gray-400);
 }
 
 /* ── WIP overload banner ── */

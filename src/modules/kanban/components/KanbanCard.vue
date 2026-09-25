@@ -22,6 +22,9 @@
     <template v-else>
       <h3 class="kcard__title">{{ task.title }}</h3>
       <p v-if="task.description" class="kcard__desc">{{ task.description }}</p>
+      <div class="kcard__quadrant">
+        <QuadrantBadge :task="task" :inverted="featured" />
+      </div>
       <div class="kcard__actions">
         <button
           v-if="featured"
@@ -55,6 +58,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import QuadrantBadge from '@/modules/tasks/components/QuadrantBadge.vue'
 import type { Task } from '@/modules/tasks/types'
 
 const props = defineProps<{
@@ -222,6 +226,12 @@ function onDragEnd(): void {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ── Quadrant ── */
+.kcard__quadrant {
+  display: flex;
+  margin-top: var(--space-sm);
 }
 
 /* ── Actions ── */
