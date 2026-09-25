@@ -68,3 +68,31 @@ export type CreateIntentionPayload = Pick<
 export type UpdateIntentionPayload = Partial<
   Pick<Intention, 'text' | 'when_text' | 'where_text' | 'first_action' | 'done'>
 > & { id: string }
+
+export type CaptureKind = 'distraction' | 'open_loop' | 'idea' | 'problem' | 'worry' | 'waiting_for'
+
+export type CaptureStatus = 'inbox' | 'converted' | 'archived'
+
+export interface Capture {
+  id: string
+  user_id: string
+  session_id: string | null
+  kind: CaptureKind
+  text: string
+  status: CaptureStatus
+  task_id: string | null
+  pinned: boolean
+  created_at: string
+  processed_at: string | null
+}
+
+export type CreateCapturePayload = Pick<Capture, 'kind' | 'text'> &
+  Partial<Pick<Capture, 'session_id'>>
+
+export interface CaptureKindInfo {
+  id: CaptureKind
+  label: string
+  icon: string
+  /** Prefix recognised by quick capture, e.g. "idea: ..." */
+  prefix: string
+}
