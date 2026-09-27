@@ -13,6 +13,20 @@ export async function fetchRecentSessions(limit = 20): Promise<FocusResult<Focus
   return { data: data as FocusSession[], error: null }
 }
 
+/** Sessions that started in [from, to), oldest first. */
+export async function fetchSessionsBetween(from: Date, to: Date): Promise<FocusResult<FocusSession[]>> {
+  const { data, error } = await supabase
+    .from('focus_sessions')
+    .select('*')
+    .gte('started_at', from.toISOString())
+    .lt('started_at', to.toISOString())
+    .order('started_at', { ascending: true })
+
+  if (error) return { data: null, error: { message: error.message } }
+
+  return { data: data as FocusSession[], error: null }
+}
+
 /** The user's running session, if any (a unique index allows at most one). */
 export async function fetchActiveSession(): Promise<FocusResult<FocusSession>> {
   const { data, error } = await supabase

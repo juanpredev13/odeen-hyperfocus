@@ -71,6 +71,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/assistant/views/WeeklyReviewView.vue'),
       },
       {
+        path: 'assistant/close',
+        name: 'assistant-close',
+        component: () => import('@/modules/assistant/views/CloseDayView.vue'),
+      },
+      {
         path: 'design-system',
         name: 'design-system',
         component: () => import('@/modules/projects/views/DesignSystemView.vue'),
