@@ -101,11 +101,12 @@ onMounted(async () => {
   align-items: center;
   gap: var(--space-xs);
   flex-shrink: 0;
+  font-family: var(--font-display);
   font-size: var(--font-size-xxs);
   font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
-  color: var(--color-gray-400);
+  color: var(--color-accent-strong);
 }
 
 .intentions-bar__label .material-symbols-outlined,
@@ -144,7 +145,7 @@ onMounted(async () => {
 }
 
 .intentions-bar__chip:hover {
-  border-color: var(--color-primary);
+  border-color: var(--color-mint);
 }
 
 .intentions-bar__chip--done {
@@ -160,7 +161,7 @@ onMounted(async () => {
 }
 
 .intentions-bar__chip--done .intentions-bar__icon {
-  color: var(--color-status-done-dot);
+  color: var(--color-mint);
 }
 
 .intentions-bar__text {
@@ -188,7 +189,9 @@ onMounted(async () => {
 
 .intentions-bar__plan {
   flex-shrink: 0;
-  font-family: monospace;
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
 }
 
 .intentions-bar__summary {
