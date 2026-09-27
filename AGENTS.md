@@ -64,11 +64,14 @@ Shared code goes in `src/services/`, `src/composables/`, or `src/store/`.
 - One scoped `<style>` block per component
 - BEM naming: `.block`, `.block__element`, `.block--modifier`
 - No utility classes, no inline styles
-- Design tokens:
-  - White background, black primary text
-  - Thin borders, large whitespace
-  - Rounded corners: 12–16px
-  - Minimal shadows, no gradients, no heavy color accents
+- Design system: **Emerald Canopy** (#59). Tokens live in `src/styles/variables.css`:
+  - Soft sage canvas (`--color-background`), white cards, deep pine text (`--color-primary`)
+  - Electric emerald (`--color-accent`) only for active states, live dots and primary CTAs
+  - Space Grotesk (`--font-display`) for headings, labels and numbers; Inter for body copy
+  - Uppercase labels with wide tracking (`--tracking-label`)
+  - Radii: 24px cards (`--radius-lg`), 12px inputs (`--radius-md`), pill buttons and tags (`--radius-full`)
+  - Dark "obsidian pod" hero cards (`--color-pod`, `--shadow-pod`) with a subtle emerald radial glow are allowed for hero surfaces only; regular cards stay flat with `--shadow-sm`
+  - Never hard-code colors in components: use tokens, and define both light and `[data-theme='dark']` values
 - Global variables defined in `src/styles/`
 
 ## Supabase

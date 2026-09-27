@@ -220,14 +220,14 @@ src/
 
 ## Design Principles
 
-- White background
-- Black primary text
-- Thin borders
-- Large whitespace
-- Rounded corners (12–16px)
-- Minimal shadows
-- No gradients
-- No heavy color accents
+Emerald Canopy (#59) replaced the original monochrome system. See the design-token rules in `AGENTS.md`.
+
+- Soft sage canvas, white cards, deep pine text
+- Emerald accent only for active states and primary actions
+- Space Grotesk display type, Inter body type
+- Large whitespace, thin borders
+- Rounded corners: 24px cards, pill buttons
+- Emerald glow and gradients only on dark hero surfaces
 
 ## BEM Naming Example
 
