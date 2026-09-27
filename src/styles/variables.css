@@ -1,41 +1,61 @@
+/* ── Emerald Canopy design system (#59) ──
+   Deep pine + electric emerald on a soft sage canvas. Token names are
+   unchanged from the original minimalist system so every component that
+   reads var(--*) picks the new palette up without edits. */
 :root {
+  /* Colors — Brand */
+  --color-pine: #0a2f1d;
+  --color-ink: #0b110e;
+  --color-pod: #0f1a14;
+  --color-pod-raised: #16261d;
+  --color-accent: #00e676;
+  --color-accent-strong: #006d35;
+  --color-mint: #10b981;
+  --color-on-accent: #0a2f1d;
+  --color-on-pod: #ffffff;
+  --color-on-pod-muted: #8fa89a;
+
   /* Colors — Primary */
-  --color-primary: #111111;
+  --color-primary: #0a2f1d;
   --color-surface: #ffffff;
-  --color-background: #f9fafb;
+  --color-background: #f4f7f4;
 
   /* Colors — Status */
-  --color-status-active: #f3e8ff;
-  --color-status-active-dot: #a855f7;
-  --color-status-active-text: #581c87;
-  --color-status-focus: #e0f2fe;
-  --color-status-focus-dot: #3b82f6;
-  --color-status-focus-text: #1e3a5f;
-  --color-status-done: #dcfce7;
-  --color-status-done-dot: #22c55e;
-  --color-status-done-text: #14532d;
-  --color-status-neutral: #f9fafb;
-  --color-status-neutral-dot: #9ca3af;
-  --color-status-neutral-text: #111827;
+  --color-status-active: #e4ede7;
+  --color-status-active-dot: #0a2f1d;
+  --color-status-active-text: #0a2f1d;
+  --color-status-focus: #e0f5ec;
+  --color-status-focus-dot: #10b981;
+  --color-status-focus-text: #005236;
+  --color-status-done: #d6f9e4;
+  --color-status-done-dot: #00e676;
+  --color-status-done-text: #005226;
+  --color-status-neutral: #f4f7f4;
+  --color-status-neutral-dot: #7a8a80;
+  --color-status-neutral-text: #171d1a;
 
-  /* Colors — Gray scale */
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-600: #4b5563;
-  --color-gray-900: #111827;
+  /* Colors — Sage gray scale */
+  --color-gray-100: #eff5ef;
+  --color-gray-200: #e4eae4;
+  --color-gray-300: #c1c8c1;
+  --color-gray-400: #7a8a80;
+  --color-gray-500: #5a665f;
+  --color-gray-600: #414843;
+  --color-gray-900: #171d1a;
 
   /* Typography */
   --font-family: 'Inter', sans-serif;
-  --font-size-display: 64px;
-  --font-size-h2: 32px;
+  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+  --font-size-display: 80px;
+  --font-size-display-mobile: 44px;
+  --font-size-h1: 48px;
+  --font-size-h2: 28px;
   --font-size-h3: 20px;
-  --font-size-body: 16px;
-  --font-size-sm: 14px;
+  --font-size-lg: 18px;
+  --font-size-body: 15px;
+  --font-size-sm: 13px;
   --font-size-xs: 12px;
-  --font-size-xxs: 10px;
+  --font-size-xxs: 11px;
 
   /* Font weights */
   --font-weight-regular: 400;
@@ -44,33 +64,41 @@
   --font-weight-bold: 700;
 
   /* Line heights */
-  --leading-tight: 1.1;
+  --leading-tight: 1.05;
   --leading-snug: 1.3;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.6;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.7;
 
   /* Letter spacing */
-  --tracking-tight: -0.02em;
+  --tracking-tight: -0.025em;
+  --tracking-display: -0.04em;
+  --tracking-label: 0.08em;
   --tracking-wide: 0.3em;
 
   /* Spacing (4px base unit) */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
-  --space-lg: 32px;
-  --space-xl: 64px;
+  --space-lg: 24px;
+  --space-xl: 48px;
+  --space-2xl: 64px;
 
   /* Borders & Radii */
-  --radius-sm: 2px;
+  --radius-sm: 4px;
   --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-lg: 24px;
   --radius-full: 9999px;
-  --border-color: #e5e7eb;
+  --border-color: #dfe7e1;
   --border-width: 1px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 8px 24px -4px rgba(10, 47, 29, 0.06);
+  --shadow-lg: 0 20px 40px -15px rgba(10, 47, 29, 0.25);
+  --shadow-pod:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.12),
+    0 20px 40px -15px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 20px rgba(0, 230, 118, 0.45);
+  --focus-ring: 0 0 0 3px rgba(0, 230, 118, 0.25);
 
   /* Icon system */
   --icon-size: 24px;
@@ -80,11 +108,11 @@
   /* Semantic status (warning / danger) — used instead of raw hex in components */
   --color-warning-bg: #fff7ed;
   --color-warning-border: #fed7aa;
-  --color-warning-text: #c2410c;
-  --color-danger: #dc2626;
-  --color-danger-bg: #fef2f2;
-  --color-danger-border: #fecaca;
-  --color-danger-text: #dc2626;
+  --color-warning-text: #b45309;
+  --color-danger: #ba1a1a;
+  --color-danger-bg: #ffdad6;
+  --color-danger-border: #f5b5ae;
+  --color-danger-text: #93000a;
 
   /* Task quadrants (#30) — aliases of status tokens. Resolved on the root
      element, so they pick up the [data-theme='dark'] values automatically. */
@@ -100,50 +128,40 @@
 
 /* ── Dark theme ──
    Toggled via [data-theme="dark"] on <html>, set by useTheme composable.
-   Violet-tinted near-black palette (colors only, sourced from a reference
-   dashboard) — layout/components unchanged, just the token values. */
+   Obsidian canvas with pine surfaces; emerald stays the accent. Shapes and
+   spacing are identical to light mode. */
 :root[data-theme='dark'] {
-  --color-primary: #f1f5f9;
-  --color-surface: #1e1932;
-  --color-background: #0c0a14;
+  --color-pod-raised: #1a2b21;
 
-  --color-status-active: #241f38;
-  --color-status-active-dot: #8b7cc4;
-  --color-status-active-text: #c4b8e0;
-  --color-status-focus: #182540;
-  --color-status-focus-dot: #3b82f6;
-  --color-status-focus-text: #bfdbfe;
-  --color-status-done: #132a1f;
-  --color-status-done-dot: #34d399;
-  --color-status-done-text: #bbf7d0;
-  --color-status-neutral: #181427;
-  --color-status-neutral-dot: #8b84a6;
-  --color-status-neutral-text: #cbc6de;
+  --color-primary: #ecf2ed;
+  --color-surface: #121c16;
+  --color-background: #0b110e;
 
-  --color-gray-100: #181427;
-  --color-gray-200: #2a2444;
-  --color-gray-300: #383059;
-  --color-gray-400: #5c5478;
-  --color-gray-500: #8b84a6;
-  --color-gray-600: #cbc6de;
-  --color-gray-900: #f1f5f9;
+  --color-status-active: #1a2b21;
+  --color-status-active-dot: #a8d0b5;
+  --color-status-active-text: #c4ecd0;
+  --color-status-focus: #0f2a20;
+  --color-status-focus-dot: #4edea3;
+  --color-status-focus-text: #6ffbbe;
+  --color-status-done: #0e2a19;
+  --color-status-done-dot: #00e676;
+  --color-status-done-text: #62ff96;
+  --color-status-neutral: #121c16;
+  --color-status-neutral-dot: #7a8a80;
+  --color-status-neutral-text: #dee4de;
 
-  --border-color: #3a3260;
+  --color-gray-100: #16221b;
+  --color-gray-200: #1f2e25;
+  --color-gray-300: #2e4035;
+  --color-gray-400: #7a8a80;
+  --color-gray-500: #a3b2a8;
+  --color-gray-600: #c1c8c1;
+  --color-gray-900: #ecf2ed;
 
-  /* Brutalist in dark: thicker borders, sharper radii. Kanban explicitly
-     overrides shadows to none (hard-edged, per product decision); everywhere
-     else that still reads --shadow-sm/-lg gets a subtle violet panel glow
-     instead of a plain black shadow — "Atlas Control" reference. */
-  --border-width: 2px;
-  --radius-sm: 0px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
-  --shadow-sm:
-    0 0 0 1px color-mix(in srgb, var(--color-status-active-dot) 15%, transparent),
-    0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-lg:
-    0 0 0 1px color-mix(in srgb, var(--color-status-active-dot) 20%, transparent),
-    0 8px 24px -4px color-mix(in srgb, var(--color-status-active-dot) 15%, transparent);
+  --border-color: #23342a;
+
+  --shadow-sm: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
 
   --color-warning-bg: #2b2110;
   --color-warning-border: #6b4a17;
@@ -153,5 +171,5 @@
      need to lighten for dark backgrounds the way --color-danger-text does. */
   --color-danger-bg: #2c1414;
   --color-danger-border: #6b1f1f;
-  --color-danger-text: #f87171;
+  --color-danger-text: #ffb4ab;
 }
