@@ -2,30 +2,25 @@
   <div class="assistant">
     <header class="assistant__header">
       <p class="assistant__date">{{ today }}</p>
-      <h1 class="assistant__title">Today</h1>
+      <h1 class="assistant__title">Today.</h1>
     </header>
 
     <AssistantNav />
 
     <p v-if="error" class="assistant__error">{{ error.message }}</p>
 
+    <div class="assistant__focus">
+      <TodayHero :intentions="todayIntentions" :session-minutes="defaultSessionMinutes" />
+      <IntentionSequence
+        :intentions="todayIntentions"
+        :current-id="currentIntention?.id ?? null"
+        @toggle="toggleDone"
+      />
+    </div>
+
     <IntentionsPlanner class="assistant__planner" />
 
     <div class="assistant__grid">
-      <TodayCard icon="timer" title="Next focus session" :text="focusCardText">
-        <RouterLink
-          v-if="nextFocus"
-          class="assistant__card-link"
-          :to="{ name: 'focus', params: { taskId: nextFocus.task_id } }"
-        >
-          Focus on “{{ nextFocus.text }}”
-          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
-        </RouterLink>
-        <RouterLink v-else class="assistant__card-link" :to="{ name: 'home' }">
-          Pick a task from a project
-          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
-        </RouterLink>
-      </TodayCard>
       <TodayCard
         icon="inbox"
         title="Inbox"
@@ -60,6 +55,8 @@
 import { computed, onMounted } from 'vue'
 import AssistantNav from '@/modules/assistant/components/AssistantNav.vue'
 import TodayCard from '@/modules/assistant/components/TodayCard.vue'
+import TodayHero from '@/modules/assistant/components/TodayHero.vue'
+import IntentionSequence from '@/modules/assistant/components/IntentionSequence.vue'
 import IntentionsPlanner from '@/modules/assistant/components/IntentionsPlanner.vue'
 import CheckinCard from '@/modules/assistant/components/CheckinCard.vue'
 import ConnectionCard from '@/modules/assistant/components/ConnectionCard.vue'
@@ -90,19 +87,10 @@ const today = new Date().toLocaleDateString(undefined, {
 
 const error = computed(() => connectionsError.value ?? settingsError.value)
 const defaultSessionMinutes = computed(() => effectiveSettings().default_session_minutes)
-const { listFor } = useIntentions()
+const { listFor, toggleDone } = useIntentions()
 
-// First open intention of the day that is linked to a task.
-const nextFocus = computed(() => {
-  const next = listFor('day', new Date()).find((i) => !i.done && i.task_id !== null)
-  return next && next.task_id ? { task_id: next.task_id, text: next.text } : null
-})
-
-const focusCardText = computed(() =>
-  nextFocus.value
-    ? `Your next intention, one task at a time. Default length: ${defaultSessionMinutes.value} min.`
-    : `Link a task to today's intentions, or open any task in Focus Mode. Default length: ${defaultSessionMinutes.value} min.`,
-)
+const todayIntentions = computed(() => listFor('day', new Date()))
+const currentIntention = computed(() => todayIntentions.value.find((i) => !i.done) ?? null)
 
 onMounted(async () => {
   await Promise.all([fetchConnections(), fetchSettings(), loadCaptures()])
@@ -116,28 +104,38 @@ async function handleDisconnect(provider: Provider): Promise<void> {
 <style scoped>
 .assistant {
   padding: var(--space-xl);
-  max-width: 960px;
+  max-width: 1040px;
   overflow-y: auto;
   height: 100%;
 }
 
 .assistant__header {
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 .assistant__date {
+  font-family: var(--font-display);
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-gray-400);
+  letter-spacing: var(--tracking-label);
+  color: var(--color-accent-strong);
 }
 
 .assistant__title {
-  font-size: var(--font-size-h2);
+  font-size: var(--font-size-h1);
   font-weight: var(--font-weight-bold);
-  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
   color: var(--color-primary);
+}
+
+.assistant__focus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
 }
 
 .assistant__error {
@@ -158,6 +156,9 @@ async function handleDisconnect(provider: Provider): Promise<void> {
 }
 
 .assistant__card-link {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
@@ -178,6 +179,7 @@ async function handleDisconnect(provider: Provider): Promise<void> {
 
 .assistant__section-title {
   margin-bottom: var(--space-md);
+  text-transform: uppercase;
   font-size: var(--font-size-h3);
   font-weight: var(--font-weight-semibold);
   color: var(--color-primary);
@@ -187,5 +189,15 @@ async function handleDisconnect(provider: Provider): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+}
+
+@media (max-width: 767px) {
+  .assistant {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .assistant__title {
+    font-size: var(--font-size-display-mobile);
+  }
 }
 </style>

@@ -132,6 +132,7 @@
    spacing are identical to light mode. */
 :root[data-theme='dark'] {
   --color-pod-raised: #1a2b21;
+  --color-accent-strong: #00e475;
 
   --color-primary: #ecf2ed;
   --color-surface: #121c16;

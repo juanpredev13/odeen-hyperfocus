@@ -281,6 +281,14 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
   color: var(--color-gray-400);
 }
 
+/* Clear the app's mobile tab bar (AppLayout, < 768px). */
+@media (max-width: 767px) {
+  .quick-capture {
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    right: var(--space-md);
+  }
+}
+
 @media (max-width: 640px) {
   .quick-capture__fab-label,
   .quick-capture__fab-kbd {
