@@ -50,7 +50,7 @@
 
       <ul v-if="mode === 'week' && editedDays.length > 0" class="schedule__edited" aria-label="Edited days">
         <li v-for="day in editedDays" :key="day.key" class="schedule__edited-item">
-          {{ day.label }} edited
+          {{ day.label }} edited · hides the weekly template
           <button class="schedule__edited-reset" type="button" :disabled="busy" @click="handleResetDay(day.date)">
             Reset to template
           </button>
@@ -117,6 +117,7 @@
       :error="editorError"
       @save="handleSave"
       @delete="handleDelete"
+      @replace="handleReplace"
       @close="closeEditor"
     />
   </div>
@@ -138,6 +139,7 @@ import {
   SLOT_MINUTES,
   WEEKDAY_NAMES,
   blockMinutes,
+  findSiblings,
   isoDayOfWeek,
   minuteOfDay,
   overlapsAny,
@@ -173,6 +175,8 @@ const {
   seriesDays,
   applySeries,
   deleteSeries,
+  deleteWithTemplate,
+  removeBlocks,
   updateBlock,
   deleteBlock,
   resetDay,
@@ -430,14 +434,78 @@ async function handleDelete(applyTo: ApplyTo, alsoDays: DayOfWeek[]): Promise<vo
   if (!state?.block) return
   const block = state.block
   const scope = scopeFor(state.dayIndex, applyTo)
+  const baseDay = isoDayOfWeek(week[state.dayIndex] as Date)
+
+  // A date block deleted with "Every <weekday>": remove it here and its
+  // matching template blocks, so nothing hidden is left behind.
+  if (block.date !== null && scope.kind === 'template') {
+    busy.value = true
+    const removed = await deleteWithTemplate(block, [baseDay, ...alsoDays])
+    busy.value = false
+    if (!removed) {
+      editorError.value = error.value?.message ?? 'Could not delete the block'
+      return
+    }
+    notice.value =
+      removed.length > 0
+        ? `Deleted here and from the weekly template on ${dayList([...removed].sort((a, b) => a - b))}.`
+        : 'Deleted here. The weekly template had no matching block.'
+    closeEditor()
+    return
+  }
+
   const series = scope.kind === 'template' && block.day_of_week !== null && alsoDays.length > 0
   const ok = await run(() => (series ? deleteSeries(block, alsoDays) : deleteBlock(block, scope)))
   if (!ok) {
     editorError.value = error.value?.message ?? 'Could not delete the block'
     return
   }
-  notice.value = series ? `Deleted from ${dayList([isoDayOfWeek(week[state.dayIndex] as Date), ...alsoDays].sort((a, b) => a - b))}.` : null
+  notice.value = series ? `Deleted from ${dayList([baseDay, ...alsoDays].sort((a, b) => a - b))}.` : null
   closeEditor()
+}
+
+/**
+ * Clears the way for the block being edited: removes every block its range
+ * overlaps on the day it is saved to — the template weekday plus the checked
+ * repeat days, or just the date — leaving the edited block itself alone.
+ */
+async function handleReplace(
+  range: { start_minute: number; end_minute: number },
+  applyTo: ApplyTo,
+  alsoDays: DayOfWeek[],
+): Promise<void> {
+  const state = editor.value
+  if (!state) return
+  editorError.value = null
+  const date = week[state.dayIndex] as Date
+  const scope = scopeFor(state.dayIndex, applyTo)
+  // The edited block and its own copies on other weekdays are never "in the way".
+  const own = new Set<string>(state.block ? [state.block.id] : [])
+  if (state.block) {
+    const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
+    for (const sibling of findSiblings(templateBlocks, state.block).values()) own.add(sibling.id)
+  }
+  const overlapping = (list: readonly ScheduleBlock[]): ScheduleBlock[] =>
+    list.filter((b) => !own.has(b.id) && b.start_minute < range.end_minute && range.start_minute < b.end_minute)
+
+  let targets: ScheduleBlock[]
+  if (scope.kind === 'template') {
+    const days = state.block?.date == null ? [isoDayOfWeek(date), ...alsoDays] : alsoDays.concat(isoDayOfWeek(date))
+    targets = [...new Set(days)].flatMap((d) => overlapping(templateFor(d)))
+    // A date block also has to fit on its own date.
+    if (state.block?.date != null) targets = targets.concat(overlapping(blocksOn(date)))
+  } else {
+    targets = overlapping(blocksOn(date))
+  }
+  if (targets.length === 0) return
+
+  const ok = await run(() => removeBlocks(targets))
+  if (!ok) {
+    editorError.value = error.value?.message ?? 'Could not remove the overlapping blocks'
+    return
+  }
+  const days = [...new Set(targets.map((b) => b.day_of_week ?? isoDayOfWeek(date)))].sort((a, b) => a - b)
+  notice.value = `Replaced ${targets.length} overlapping ${targets.length === 1 ? 'block' : 'blocks'} on ${dayList(days)}.`
 }
 
 async function handleDragUpdate(change: GridRange & { block: ScheduleBlock }): Promise<void> {
