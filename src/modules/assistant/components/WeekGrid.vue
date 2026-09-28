@@ -1,5 +1,5 @@
 <template>
-  <div ref="scroller" class="week-grid">
+  <div class="week-grid">
     <div class="week-grid__head">
       <span class="week-grid__corner">{{ timeZoneLabel }}</span>
       <div
@@ -33,12 +33,13 @@
         @pointerdown="startCreate($event, dayIndex)"
       >
         <ScheduleBlockCard
-          v-for="block in day.blocks"
+          v-for="block in visibleBlocks(day)"
           v-show="drag?.blockId !== block.id"
           :key="block.id"
           :block="block"
           :segment="segmentById(block.segment_id)"
           :px-per-minute="PX_PER_MINUTE"
+          :origin-minute="DAY_START_MINUTE"
           :current="day.isToday && block.start_minute <= nowMinute && nowMinute < block.end_minute"
           @gesture="(gesture, event) => startBlockGesture(event, gesture, dayIndex, block)"
           @edit="emit('edit', { dayIndex, block })"
@@ -51,9 +52,10 @@
           :block="{ start_minute: drag.start, end_minute: drag.end, title: drag.title, note: null }"
           :segment="drag.segmentId ? segmentById(drag.segmentId) : undefined"
           :px-per-minute="PX_PER_MINUTE"
+          :origin-minute="DAY_START_MINUTE"
         />
 
-        <div v-if="day.isToday" class="week-grid__now" aria-hidden="true"></div>
+        <div v-if="day.isToday && nowVisible" class="week-grid__now" aria-hidden="true"></div>
       </div>
     </div>
 
@@ -66,11 +68,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, type ComponentPublicInstance } from 'vue'
+import { computed, ref, type ComponentPublicInstance } from 'vue'
 import ScheduleBlockCard, { type BlockGesture } from '@/modules/assistant/components/ScheduleBlockCard.vue'
 import { formatDuration } from '@/modules/assistant/composables/closeDayHelpers'
 import {
-  DAY_MINUTES,
+  DAY_END_MINUTE,
+  DAY_START_MINUTE,
   SLOT_MINUTES,
   formatMinutes,
   overlapsAny,
@@ -94,8 +97,8 @@ export interface GridRange {
 
 const HOUR_PX = 72
 const PX_PER_MINUTE = HOUR_PX / 60
-const HOURS = Array.from({ length: 24 }, (_, h) => h)
-const INITIAL_SCROLL_HOUR = 6
+const FIRST_HOUR = DAY_START_MINUTE / 60
+const HOURS = Array.from({ length: (DAY_END_MINUTE - DAY_START_MINUTE) / 60 }, (_, i) => FIRST_HOUR + i)
 /** Pointer travel (px) before a press on a block counts as a drag, not a click. */
 const DRAG_THRESHOLD = 4
 
@@ -127,7 +130,6 @@ interface DragState {
   moved: boolean
 }
 
-const scroller = ref<HTMLElement | null>(null)
 const columns: HTMLElement[] = []
 const drag = ref<DragState | null>(null)
 
@@ -136,8 +138,9 @@ const timeZoneLabel = (() => {
   return `UTC${offset >= 0 ? '+' : ''}${offset}`
 })()
 
-const nowTop = computed(() => `${props.nowMinute * PX_PER_MINUTE}px`)
-const dayHeight = `${DAY_MINUTES * PX_PER_MINUTE}px`
+const nowVisible = computed(() => props.nowMinute >= DAY_START_MINUTE && props.nowMinute < DAY_END_MINUTE)
+const nowTop = computed(() => `${(props.nowMinute - DAY_START_MINUTE) * PX_PER_MINUTE}px`)
+const dayHeight = `${(DAY_END_MINUTE - DAY_START_MINUTE) * PX_PER_MINUTE}px`
 const hourHeight = `${HOUR_PX}px`
 const slotHeight = `${SLOT_MINUTES * PX_PER_MINUTE}px`
 
@@ -147,6 +150,11 @@ const dragOverlaps = computed(() => {
   const day = props.days[d.dayIndex]
   return day ? overlapsAny(day.blocks, { start_minute: d.start, end_minute: d.end }, d.blockId) : false
 })
+
+/** Blocks that overlap the planned day; anything fully outside it is not drawn. */
+function visibleBlocks(day: GridDay): ScheduleBlock[] {
+  return day.blocks.filter((b) => b.end_minute > DAY_START_MINUTE && b.start_minute < DAY_END_MINUTE)
+}
 
 function segmentById(id: string): ScheduleSegment | undefined {
   return props.segments.find((s) => s.id === id)
@@ -159,11 +167,14 @@ function setColumn(el: Element | ComponentPublicInstance | null, index: number):
 function minuteAt(clientY: number, dayIndex: number): number {
   const column = columns[dayIndex]
   if (!column) return 0
-  return (clientY - column.getBoundingClientRect().top) / PX_PER_MINUTE
+  return DAY_START_MINUTE + (clientY - column.getBoundingClientRect().top) / PX_PER_MINUTE
 }
 
 function floorToSlot(minute: number): number {
-  return Math.min(DAY_MINUTES - SLOT_MINUTES, Math.max(0, Math.floor(minute / SLOT_MINUTES) * SLOT_MINUTES))
+  return Math.min(
+    DAY_END_MINUTE - SLOT_MINUTES,
+    Math.max(DAY_START_MINUTE, Math.floor(minute / SLOT_MINUTES) * SLOT_MINUTES),
+  )
 }
 
 function begin(event: PointerEvent, state: DragState): void {
@@ -227,13 +238,13 @@ function onMove(event: PointerEvent): void {
     d.start = Math.min(d.anchor, slot)
     d.end = Math.max(d.anchor, slot) + SLOT_MINUTES
   } else if (d.gesture === 'move') {
-    const start = snapMinutes(d.originStart + (minute - d.anchor))
-    d.start = Math.min(start, DAY_MINUTES - length)
+    const start = Math.max(DAY_START_MINUTE, snapMinutes(d.originStart + (minute - d.anchor)))
+    d.start = Math.min(start, DAY_END_MINUTE - length)
     d.end = d.start + length
   } else if (d.gesture === 'resize-start') {
-    d.start = Math.min(snapMinutes(minute), d.originEnd - SLOT_MINUTES)
+    d.start = Math.max(DAY_START_MINUTE, Math.min(snapMinutes(minute), d.originEnd - SLOT_MINUTES))
   } else {
-    d.end = Math.max(snapMinutes(minute), d.originStart + SLOT_MINUTES)
+    d.end = Math.min(DAY_END_MINUTE, Math.max(snapMinutes(minute), d.originStart + SLOT_MINUTES))
   }
 }
 
@@ -271,9 +282,6 @@ function cancel(): void {
   finish()
 }
 
-onMounted(() => {
-  if (scroller.value) scroller.value.scrollTop = INITIAL_SCROLL_HOUR * HOUR_PX
-})
 </script>
 
 <style scoped>

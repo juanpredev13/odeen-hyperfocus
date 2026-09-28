@@ -11,6 +11,10 @@ import type {
 export const SLOT_MINUTES = 15
 export const DAY_MINUTES = 24 * 60
 
+/** The planned day: blocks live between 06:00 and 22:00. */
+export const DAY_START_MINUTE = 6 * 60
+export const DAY_END_MINUTE = 22 * 60
+
 export const SEGMENT_COLORS: readonly SegmentColor[] = [
   'emerald',
   'mint',
@@ -131,6 +135,11 @@ export function overlapsAny(
   )
 }
 
+/** Whether a range sits inside the planned day (06:00–22:00). */
+export function isWithinPlannedDay(range: { start_minute: number; end_minute: number }): boolean {
+  return range.start_minute >= DAY_START_MINUTE && range.end_minute <= DAY_END_MINUTE
+}
+
 /** A valid block range: on mini-slots, inside the day, at least one slot long. */
 export function isValidRange(range: { start_minute: number; end_minute: number }): boolean {
   return (
@@ -193,8 +202,8 @@ export const DEFAULT_TEMPLATE: readonly TemplateSeed[] = [
   { segment: 0, days: WEEKDAYS, start: 840, end: 1020, title: null },
   { segment: 2, days: [2, 4], start: 1080, end: 1170, title: null },
   { segment: 2, days: [6], start: 600, end: 720, title: null },
-  { segment: 3, days: ALL_DAYS, start: 1200, end: 1320, title: null },
-  { segment: 4, days: ALL_DAYS, start: 1380, end: 1440, title: null },
+  { segment: 3, days: ALL_DAYS, start: 1200, end: 1290, title: null },
+  { segment: 4, days: ALL_DAYS, start: 1290, end: 1320, title: 'Wind down' },
 ]
 
 export const WEEKDAY_NAMES: Record<DayOfWeek, string> = {

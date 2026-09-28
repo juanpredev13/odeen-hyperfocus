@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DEFAULT_TEMPLATE,
+  DAY_END_MINUTE,
+  DAY_START_MINUTE,
   blockSize,
   blocksForDate,
   currentBlock,
@@ -7,6 +10,7 @@ import {
   formatMinutes,
   formatRange,
   isValidRange,
+  isWithinPlannedDay,
   isoDayOfWeek,
   nextBlock,
   overlapsAny,
@@ -196,5 +200,28 @@ describe('focusedMinutesBySegment', () => {
     ])
     expect(focused.get('work')).toBe(75)
     expect(focused.has('learning')).toBe(false)
+  })
+})
+
+describe('planned day (06:00–22:00)', () => {
+  it('spans 06:00 to 22:00', () => {
+    expect(DAY_START_MINUTE).toBe(360)
+    expect(DAY_END_MINUTE).toBe(1320)
+  })
+
+  it('accepts ranges inside the day, edges included', () => {
+    expect(isWithinPlannedDay({ start_minute: 360, end_minute: 375 })).toBe(true)
+    expect(isWithinPlannedDay({ start_minute: 1305, end_minute: 1320 })).toBe(true)
+  })
+
+  it('rejects ranges before 06:00 or after 22:00', () => {
+    expect(isWithinPlannedDay({ start_minute: 345, end_minute: 375 })).toBe(false)
+    expect(isWithinPlannedDay({ start_minute: 1305, end_minute: 1335 })).toBe(false)
+  })
+
+  it('keeps the starter week inside the planned day', () => {
+    for (const seed of DEFAULT_TEMPLATE) {
+      expect(isWithinPlannedDay({ start_minute: seed.start, end_minute: seed.end })).toBe(true)
+    }
   })
 })

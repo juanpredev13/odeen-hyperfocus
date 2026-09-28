@@ -31,7 +31,7 @@
           <h1 class="schedule__title">{{ mode === 'template' ? 'Weekly rhythm.' : 'This week.' }}</h1>
           <p class="schedule__sub">
             {{ mode === 'template' ? 'Repeats every week' : weekLabel }}
-            <span class="schedule__sub-accent">· 15-min grid</span>
+            <span class="schedule__sub-accent">· 06:00–22:00 · 15-min grid</span>
           </p>
         </div>
 
@@ -122,7 +122,8 @@ import ScheduleOnboarding from '@/modules/assistant/components/ScheduleOnboardin
 import { useSchedule, type BlockFields, type BlockScope } from '@/modules/assistant/composables/useSchedule'
 import { toISODate } from '@/modules/assistant/composables/intentionHelpers'
 import {
-  DAY_MINUTES,
+  DAY_END_MINUTE,
+  DAY_START_MINUTE,
   SLOT_MINUTES,
   WEEKDAY_NAMES,
   blockMinutes,
@@ -285,13 +286,13 @@ function openEdit(dayIndex: number, block: ScheduleBlock): void {
 function openNextFree(): void {
   const list = gridDays.value[selectedIndex.value]?.blocks ?? []
   const isToday = gridDays.value[selectedIndex.value]?.isToday ?? false
-  let start = isToday ? snapMinutes(nowMinute.value + SLOT_MINUTES / 2) : 9 * 60
-  while (start < DAY_MINUTES && overlapsAny(list, { start_minute: start, end_minute: start + SLOT_MINUTES })) {
+  let start = Math.max(DAY_START_MINUTE, isToday ? snapMinutes(nowMinute.value + SLOT_MINUTES / 2) : 9 * 60)
+  while (start < DAY_END_MINUTE && overlapsAny(list, { start_minute: start, end_minute: start + SLOT_MINUTES })) {
     start += SLOT_MINUTES
   }
-  if (start >= DAY_MINUTES) start = DAY_MINUTES - SLOT_MINUTES
+  if (start >= DAY_END_MINUTE) start = DAY_END_MINUTE - SLOT_MINUTES
   let end = start + SLOT_MINUTES
-  while (end < Math.min(DAY_MINUTES, start + 60) && !overlapsAny(list, { start_minute: start, end_minute: end + SLOT_MINUTES })) {
+  while (end < Math.min(DAY_END_MINUTE, start + 60) && !overlapsAny(list, { start_minute: start, end_minute: end + SLOT_MINUTES })) {
     end += SLOT_MINUTES
   }
   openNew({ dayIndex: selectedIndex.value, start, end })
