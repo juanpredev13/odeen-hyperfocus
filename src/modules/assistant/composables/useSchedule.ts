@@ -6,6 +6,7 @@ import {
   DEFAULT_TEMPLATE,
   blocksForDate,
   isoDayOfWeek,
+  planCopies,
   templateBlocksFor,
   weekDates,
 } from '@/modules/assistant/composables/scheduleHelpers'
@@ -217,6 +218,29 @@ export function useSchedule() {
   }
 
   /**
+   * Copies a block's fields onto other weekdays of the template. Days where
+   * it would overlap an existing block are skipped and reported.
+   */
+  async function copyToDays(
+    days: readonly DayOfWeek[],
+    fields: BlockFields,
+  ): Promise<{ added: DayOfWeek[]; skipped: DayOfWeek[] } | null> {
+    error.value = null
+    const { free, taken } = planCopies(days, templateFor, fields)
+    if (free.length === 0) return { added: [], skipped: taken }
+
+    const result = await scheduleService.createBlocks(
+      free.map((day) => ({ day_of_week: day, date: null, ...clean(fields) })),
+    )
+    if (result.error) {
+      error.value = result.error
+      return null
+    }
+    blocks.value = [...blocks.value, ...(result.data ?? [])]
+    return { added: free, skipped: taken }
+  }
+
+  /**
    * Updates a block. Editing a template block with a `date` scope detaches
    * that day first and edits only its copy, so the template stays intact.
    */
@@ -299,6 +323,7 @@ export function useSchedule() {
     updateSegment,
     moveSegment,
     createBlock,
+    copyToDays,
     updateBlock,
     deleteBlock,
     resetDay,

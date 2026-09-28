@@ -14,6 +14,7 @@ import {
   isoDayOfWeek,
   nextBlock,
   overlapsAny,
+  planCopies,
   plannedMinutesBySegment,
   snapMinutes,
   weekDates,
@@ -223,5 +224,25 @@ describe('planned day (06:00–22:00)', () => {
     for (const seed of DEFAULT_TEMPLATE) {
       expect(isWithinPlannedDay({ start_minute: seed.start, end_minute: seed.end })).toBe(true)
     }
+  })
+})
+
+describe('planCopies', () => {
+  const byDay: Record<number, ScheduleBlock[]> = {
+    2: [block({ id: 'tue', day_of_week: 2, start_minute: 540, end_minute: 600 })],
+    4: [block({ id: 'thu', day_of_week: 4, start_minute: 780, end_minute: 840 })],
+  }
+  const blocksOn = (day: number): ScheduleBlock[] => byDay[day] ?? []
+
+  it('puts overlapping weekdays in taken and the rest in free', () => {
+    const plan = planCopies([2, 3, 4, 5], blocksOn, { start_minute: 570, end_minute: 630 })
+    expect(plan.free).toEqual([3, 4, 5])
+    expect(plan.taken).toEqual([2])
+  })
+
+  it('treats touching blocks as free', () => {
+    const plan = planCopies([2, 4], blocksOn, { start_minute: 600, end_minute: 780 })
+    expect(plan.free).toEqual([2, 4])
+    expect(plan.taken).toEqual([])
   })
 })

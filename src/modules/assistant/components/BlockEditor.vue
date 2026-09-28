@@ -101,6 +101,41 @@
         </div>
       </fieldset>
 
+      <fieldset v-if="targetsTemplate" class="block-editor__field">
+        <legend class="block-editor__label">Repeat on</legend>
+        <div class="block-editor__days">
+          <label
+            v-for="day in WEEK"
+            :key="day.id"
+            class="block-editor__day"
+            :class="{
+              'block-editor__day--active': repeatDays.includes(day.id),
+              'block-editor__day--base': day.id === baseDay,
+            }"
+            :title="day.id === baseDay ? `${day.name} (this block)` : day.name"
+          >
+            <input
+              v-model="repeatDays"
+              class="block-editor__radio"
+              type="checkbox"
+              :value="day.id"
+              :disabled="day.id === baseDay"
+              :aria-label="day.name"
+            />
+            {{ day.short }}
+          </label>
+        </div>
+        <div class="block-editor__presets">
+          <button class="block-editor__preset" type="button" @click="setRepeat(WEEKDAYS)">Weekdays</button>
+          <button class="block-editor__preset" type="button" @click="setRepeat(ALL_DAYS)">Every day</button>
+          <button class="block-editor__preset" type="button" @click="setRepeat([])">Only {{ baseDayName }}</button>
+        </div>
+        <p v-if="alsoDays.length > 0" class="block-editor__hint">
+          Also added to {{ alsoDays.length }} {{ alsoDays.length === 1 ? 'day' : 'days' }}. Days where it would overlap
+          another block are skipped.
+        </p>
+      </fieldset>
+
       <p v-if="error" class="block-editor__error" role="alert">{{ error }}</p>
 
       <footer class="block-editor__footer">
@@ -126,14 +161,19 @@ import {
   DAY_END_MINUTE,
   DAY_START_MINUTE,
   SLOT_MINUTES,
+  WEEKDAY_NAMES,
   formatMinutes,
   overlapsAny,
 } from '@/modules/assistant/composables/scheduleHelpers'
 import type { BlockFields } from '@/modules/assistant/composables/useSchedule'
-import type { ScheduleBlock, ScheduleSegment } from '@/modules/assistant/types'
+import type { DayOfWeek, ScheduleBlock, ScheduleSegment } from '@/modules/assistant/types'
 
 type Edge = 'start' | 'end'
 export type ApplyTo = 'date' | 'template'
+
+const WEEKDAYS: readonly DayOfWeek[] = [1, 2, 3, 4, 5]
+const ALL_DAYS: readonly DayOfWeek[] = [1, 2, 3, 4, 5, 6, 7]
+const WEEK = ALL_DAYS.map((id) => ({ id, name: WEEKDAY_NAMES[id], short: WEEKDAY_NAMES[id].slice(0, 2) }))
 
 const EDGES: { key: Edge; label: string }[] = [
   { key: 'start', label: 'Start' },
@@ -151,12 +191,17 @@ const props = defineProps<{
   contextLabel: string
   /** Offered when a template block is edited from a real week. */
   scopeChoice: { dateLabel: string; weekday: string } | null
+  /** Editing the weekly template directly (not a real week). */
+  templateMode: boolean
+  /** Weekday of the day being edited. */
+  baseDay: DayOfWeek
   busy: boolean
   error: string | null
 }>()
 
 const emit = defineEmits<{
-  save: [fields: BlockFields, applyTo: ApplyTo]
+  /** `alsoDays`: other weekdays to copy the block to (template only). */
+  save: [fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOfWeek[]]
   delete: [applyTo: ApplyTo]
   close: []
 }>()
@@ -168,6 +213,19 @@ const end = ref(Math.max(Math.min(props.initialEnd, DAY_END_MINUTE), start.value
 const title = ref(props.block?.title ?? '')
 const note = ref(props.block?.note ?? '')
 const applyTo = ref<ApplyTo>('date')
+const repeatDays = ref<DayOfWeek[]>([props.baseDay])
+
+const targetsTemplate = computed(
+  () => props.templateMode || (props.scopeChoice !== null && applyTo.value === 'template'),
+)
+const baseDayName = computed(() => WEEKDAY_NAMES[props.baseDay])
+const alsoDays = computed(() =>
+  targetsTemplate.value ? repeatDays.value.filter((d) => d !== props.baseDay).sort((a, b) => a - b) : [],
+)
+
+function setRepeat(days: readonly DayOfWeek[]): void {
+  repeatDays.value = [...new Set<DayOfWeek>([props.baseDay, ...days])]
+}
 
 const overlaps = computed(() =>
   overlapsAny(props.dayBlocks, { start_minute: start.value, end_minute: end.value }, props.block?.id ?? null),
@@ -200,6 +258,7 @@ function save(): void {
       note: note.value,
     },
     applyTo.value,
+    alsoDays.value,
   )
 }
 </script>
@@ -458,6 +517,72 @@ function save(): void {
 .block-editor__scope-option--active {
   background-color: rgba(255, 255, 255, 0.12);
   color: var(--color-on-pod);
+}
+
+.block-editor__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.block-editor__day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border: var(--border-width) solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  background-color: rgba(255, 255, 255, 0.05);
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-pod-muted);
+  cursor: pointer;
+}
+
+.block-editor__day:has(.block-editor__radio:focus-visible) {
+  outline: 2px solid var(--color-mint);
+  outline-offset: 2px;
+}
+
+.block-editor__day--active {
+  border-color: var(--color-accent);
+  background-color: rgba(0, 230, 118, 0.18);
+  color: var(--color-on-pod);
+}
+
+.block-editor__day--base {
+  background-color: var(--color-accent);
+  color: var(--color-on-accent);
+  cursor: default;
+}
+
+.block-editor__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.block-editor__preset {
+  padding: var(--space-xs) var(--space-md);
+  border: var(--border-width) solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+  background: none;
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-on-pod);
+  cursor: pointer;
+}
+
+.block-editor__preset:hover {
+  border-color: var(--color-accent);
+}
+
+.block-editor__hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-on-pod-muted);
 }
 
 .block-editor__error {

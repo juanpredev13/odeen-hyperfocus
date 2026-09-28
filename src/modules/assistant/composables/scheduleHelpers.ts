@@ -135,6 +135,21 @@ export function overlapsAny(
   )
 }
 
+/**
+ * Splits target weekdays into the ones where a range fits and the ones
+ * where it would overlap an existing block.
+ */
+export function planCopies(
+  days: readonly DayOfWeek[],
+  blocksOn: (day: DayOfWeek) => readonly Pick<ScheduleBlock, 'id' | 'start_minute' | 'end_minute'>[],
+  range: { start_minute: number; end_minute: number },
+): { free: DayOfWeek[]; taken: DayOfWeek[] } {
+  const free: DayOfWeek[] = []
+  const taken: DayOfWeek[] = []
+  for (const day of days) (overlapsAny(blocksOn(day), range) ? taken : free).push(day)
+  return { free, taken }
+}
+
 /** Whether a range sits inside the planned day (06:00–22:00). */
 export function isWithinPlannedDay(range: { start_minute: number; end_minute: number }): boolean {
   return range.start_minute >= DAY_START_MINUTE && range.end_minute <= DAY_END_MINUTE
