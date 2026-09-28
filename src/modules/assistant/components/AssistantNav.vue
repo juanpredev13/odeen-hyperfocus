@@ -24,39 +24,48 @@ const links: AssistantNavLink[] = [
   { name: 'assistant', label: 'Today', icon: 'today' },
   { name: 'assistant-inbox', label: 'Inbox', icon: 'inbox' },
   { name: 'assistant-review', label: 'Weekly review', icon: 'insights' },
+  { name: 'assistant-close', label: 'Close the day', icon: 'bedtime' },
 ]
 </script>
 
 <style scoped>
 .assistant-nav {
   display: flex;
-  gap: var(--space-xs);
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-lg);
   margin-bottom: var(--space-lg);
-  border-bottom: var(--border-width) solid var(--border-color);
-  padding-bottom: var(--space-sm);
 }
 
 .assistant-nav__link {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-md);
+  padding: var(--space-xs) 0;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-display);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
   color: var(--color-gray-500);
   text-decoration: none;
-  transition: all 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .assistant-nav__link:hover {
   color: var(--color-primary);
-  background-color: var(--color-background);
 }
 
 .assistant-nav__link--active {
-  color: var(--color-primary);
-  background-color: var(--color-background);
+  color: var(--color-accent-strong);
+  border-bottom-color: var(--color-accent);
+}
+
+:root[data-theme='dark'] .assistant-nav__link--active {
+  color: var(--color-accent);
 }
 
 .assistant-nav__icon {

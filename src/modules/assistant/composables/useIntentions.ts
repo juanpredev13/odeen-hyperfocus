@@ -128,6 +128,17 @@ export function useIntentions() {
     return true
   }
 
+  /** Copies a day intention to the next day, keeping its task link and plan. */
+  async function carryOver(intention: Intention, from: Date = new Date()): Promise<boolean> {
+    return add('day', addDays(from, 1), {
+      text: intention.text,
+      task_id: intention.task_id,
+      when_text: intention.when_text,
+      where_text: intention.where_text,
+      first_action: intention.first_action,
+    })
+  }
+
   async function toggleDone(intention: Intention): Promise<boolean> {
     return update({ id: intention.id, done: !intention.done })
   }
@@ -157,6 +168,7 @@ export function useIntentions() {
     suggestionsFor,
     add,
     update,
+    carryOver,
     toggleDone,
     remove,
   }

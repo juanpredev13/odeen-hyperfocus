@@ -25,8 +25,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
 h1 {
-  font-size: var(--font-size-display);
+  font-size: var(--font-size-h1);
   font-weight: var(--font-weight-bold);
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
@@ -36,10 +42,21 @@ h2 {
   font-size: var(--font-size-h2);
   font-weight: var(--font-weight-semibold);
   line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
 }
 
 h3 {
   font-size: var(--font-size-h3);
   font-weight: var(--font-weight-medium);
   line-height: var(--leading-snug);
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-mint);
+  outline-offset: 2px;
 }
