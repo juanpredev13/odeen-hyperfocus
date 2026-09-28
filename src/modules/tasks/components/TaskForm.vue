@@ -86,6 +86,9 @@
             <span class="modal__quadrant-hint">{{ quadrantHint }}</span>
           </p>
 
+          <TaskLinks v-if="task" :task-id="task.id" />
+          <p v-else class="modal__links-hint">Save the task to link GitHub issues or Obsidian notes.</p>
+
           <p v-if="error" class="modal__error">{{ error }}</p>
         </div>
 
@@ -113,6 +116,7 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
 import QuadrantBadge from '@/modules/tasks/components/QuadrantBadge.vue'
+import TaskLinks from '@/modules/tasks/components/TaskLinks.vue'
 import { getQuadrantInfo, getTaskQuadrant } from '@/modules/tasks/composables/useTaskQuadrant'
 import type {
   Task,
@@ -182,7 +186,8 @@ function handleSubmit(): void {
   border: var(--border-width) solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  overflow: hidden;
+  max-height: calc(100dvh - 2 * var(--space-md));
+  overflow-y: auto;
 }
 
 /* ── Close button ── */
@@ -384,6 +389,12 @@ function handleSubmit(): void {
 }
 
 .modal__quadrant-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-400);
+}
+
+/* ── Links hint (new task) ── */
+.modal__links-hint {
   font-size: var(--font-size-xs);
   color: var(--color-gray-400);
 }
