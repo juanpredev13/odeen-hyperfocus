@@ -12,6 +12,7 @@
     role="button"
     tabindex="0"
     :aria-label="`${segment?.name ?? 'Block'}${block.title ? `: ${block.title}` : ''}, ${range}`"
+    :title="ghost ? undefined : tooltip"
     @pointerdown="onPointerDown($event, 'move')"
     @keydown.enter.prevent="emit('edit')"
     @keydown.space.prevent="emit('edit')"
@@ -27,7 +28,8 @@
       <span class="material-symbols-outlined schedule-block__icon" aria-hidden="true">
         {{ segment?.icon ?? 'circle' }}
       </span>
-      <span class="schedule-block__time">{{ size === 'mini' ? range : shortRange }}</span>
+      <span v-if="size === 'mini'" class="schedule-block__inline-title">{{ block.title ?? segment?.name }}</span>
+      <span class="schedule-block__time">{{ shortRange }}</span>
     </div>
 
     <p v-if="size !== 'mini' && block.title" class="schedule-block__title">{{ block.title }}</p>
@@ -80,6 +82,11 @@ const size = computed(() => blockSize(minutes.value))
 const range = computed(() => formatRange(props.block))
 const shortRange = computed(() => `${formatMinutes(props.block.start_minute)}–${formatMinutes(props.block.end_minute)}`)
 const duration = computed(() => formatDuration(minutes.value))
+const tooltip = computed(() =>
+  [`${props.block.title ?? props.segment?.name ?? 'Block'} · ${range.value}`, props.block.note]
+    .filter(Boolean)
+    .join('\n'),
+)
 
 // Geometry and color are data-driven, so they are bound as CSS variables.
 const top = computed(() => `${(props.block.start_minute - props.originMinute) * props.pxPerMinute}px`)
@@ -178,6 +185,36 @@ function onPointerDown(event: PointerEvent, gesture: BlockGesture): void {
   text-overflow: ellipsis;
   letter-spacing: 0.02em;
   color: var(--color-gray-600);
+}
+
+/* 15-minute blocks: one row, title first. The time only shows when the
+   column is wide enough — its position on the grid and the tooltip give it. */
+.schedule-block--mini {
+  container-type: inline-size;
+}
+
+.schedule-block--mini .schedule-block__time {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 9px;
+}
+
+@container (max-width: 180px) {
+  .schedule-block--mini .schedule-block__time {
+    display: none;
+  }
+}
+
+.schedule-block__inline-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
 }
 
 .schedule-block__title {
