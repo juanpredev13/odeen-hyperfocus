@@ -150,6 +150,19 @@ export function planCopies(
   return { free, taken }
 }
 
+/** Two blocks count as "the same block" when segment, time range and focus match. */
+export function isSameBlock(
+  a: Pick<ScheduleBlock, 'segment_id' | 'start_minute' | 'end_minute' | 'title'>,
+  b: Pick<ScheduleBlock, 'segment_id' | 'start_minute' | 'end_minute' | 'title'>,
+): boolean {
+  return (
+    a.segment_id === b.segment_id &&
+    a.start_minute === b.start_minute &&
+    a.end_minute === b.end_minute &&
+    (a.title ?? '') === (b.title ?? '')
+  )
+}
+
 /**
  * The same block repeated on other weekdays of the template: same segment,
  * time range and focus. Keyed by weekday; the block's own day is left out.
@@ -161,14 +174,7 @@ export function findSiblings(
   const siblings = new Map<DayOfWeek, ScheduleBlock>()
   for (const b of templateBlocks) {
     if (b.id === block.id || b.day_of_week === null || b.day_of_week === block.day_of_week) continue
-    if (
-      b.segment_id === block.segment_id &&
-      b.start_minute === block.start_minute &&
-      b.end_minute === block.end_minute &&
-      (b.title ?? '') === (block.title ?? '')
-    ) {
-      siblings.set(b.day_of_week, b)
-    }
+    if (isSameBlock(b, block)) siblings.set(b.day_of_week, b)
   }
   return siblings
 }
