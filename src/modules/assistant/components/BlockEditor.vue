@@ -72,6 +72,16 @@
           {{ formatDuration(end - start) }} · {{ (end - start) / SLOT_MINUTES }} mini-slots
           <template v-if="conflict"> · overlaps {{ conflictLabel }}</template>
         </p>
+        <button
+          v-if="conflict"
+          class="block-editor__replace"
+          type="button"
+          :disabled="busy"
+          @click="emit('replace', { start_minute: start, end_minute: end }, applyTo, alsoDays)"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
+          Replace {{ conflict.title ?? 'that block' }}{{ alsoDays.length > 0 && targetsTemplate && !isDated ? ' on every checked day' : '' }}
+        </button>
       </div>
 
       <label class="block-editor__field">
@@ -131,8 +141,8 @@
           <button class="block-editor__preset" type="button" @click="setRepeat([])">Only {{ baseDayName }}</button>
         </div>
         <p v-if="isDated" class="block-editor__hint">
-          This day keeps its block, and it is added to the weekly template on every checked day, so it repeats
-          from now on. Days where that time is taken are skipped.
+          Save keeps this day's block and adds it to the weekly template on every checked day. Delete removes it
+          here and the matching block from the template on the checked days.
         </p>
         <p v-else-if="isSeries" class="block-editor__hint">
           Changes apply to every checked day. Unchecking a day removes the block from it; days where the new time
@@ -149,7 +159,7 @@
       <footer class="block-editor__footer">
         <button v-if="block" class="block-editor__delete" type="button" :disabled="busy" @click="emit('delete', applyTo, alsoDays)">
           <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-          {{ alsoDays.length > 0 && !isDated ? `Delete from ${alsoDays.length + 1} days` : 'Delete block' }}
+          {{ deleteLabel }}
         </button>
         <span class="block-editor__spacer"></span>
         <button class="block-editor__cancel" type="button" @click="emit('close')">Cancel</button>
@@ -216,6 +226,8 @@ const emit = defineEmits<{
   save: [fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOfWeek[]]
   /** `alsoDays`: other weekdays to delete the repeated block from. */
   delete: [applyTo: ApplyTo, alsoDays: DayOfWeek[]]
+  /** Delete whatever this range overlaps (on the checked days too), so it can be saved in its place. */
+  replace: [range: { start_minute: number; end_minute: number }, applyTo: ApplyTo, alsoDays: DayOfWeek[]]
   close: []
 }>()
 
@@ -229,6 +241,11 @@ const applyTo = ref<ApplyTo>('date')
 const repeatDays = ref<DayOfWeek[]>(props.seriesDays.length > 0 ? [...props.seriesDays] : [props.baseDay])
 const isSeries = computed(() => props.block !== null && props.seriesDays.length > 0)
 const isDated = computed(() => props.block !== null && props.block.date !== null)
+const deleteLabel = computed(() => {
+  if (isDated.value && targetsTemplate.value) return 'Delete here and from template'
+  if (alsoDays.value.length > 0) return `Delete from ${alsoDays.value.length + 1} days`
+  return 'Delete block'
+})
 
 const targetsTemplate = computed(
   () => props.templateMode || (props.scopeChoice !== null && applyTo.value === 'template'),
@@ -490,6 +507,31 @@ function save(): void {
   font-family: var(--font-display);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
+}
+
+.block-editor__replace {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  border: var(--border-width) solid var(--color-danger-on-pod);
+  border-radius: var(--radius-full);
+  background: none;
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger-on-pod);
+  cursor: pointer;
+}
+
+.block-editor__replace .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.block-editor__replace:disabled {
+  opacity: 0.5;
+  cursor: wait;
 }
 
 .block-editor__summary--error {

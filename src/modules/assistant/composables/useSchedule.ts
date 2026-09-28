@@ -290,6 +290,41 @@ export function useSchedule() {
     return plan
   }
 
+  /**
+   * Deletes a date block and the matching weekly-template blocks (same
+   * segment, time and focus) on the given weekdays.
+   */
+  async function deleteWithTemplate(dated: ScheduleBlock, days: readonly DayOfWeek[]): Promise<DayOfWeek[] | null> {
+    error.value = null
+    const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
+    const matches = findSiblings(templateBlocks, { ...dated, day_of_week: null })
+    const fromTemplate = days.flatMap((d) => matches.get(d) ?? [])
+
+    const ids = [dated.id, ...fromTemplate.map((b) => b.id)]
+    const result = await scheduleService.deleteBlocks(ids)
+    if (result.error) {
+      error.value = result.error
+      return null
+    }
+    const gone = new Set(ids)
+    blocks.value = blocks.value.filter((b) => !gone.has(b.id))
+    return fromTemplate.map((b) => b.day_of_week).filter((d): d is DayOfWeek => d !== null)
+  }
+
+  /** Deletes blocks by id, wherever they live (template or date). */
+  async function removeBlocks(targets: readonly ScheduleBlock[]): Promise<boolean> {
+    error.value = null
+    const ids = targets.map((b) => b.id)
+    const result = await scheduleService.deleteBlocks(ids)
+    if (result.error) {
+      error.value = result.error
+      return false
+    }
+    const gone = new Set(ids)
+    blocks.value = blocks.value.filter((b) => !gone.has(b.id))
+    return true
+  }
+
   /** Deletes a template block and its siblings on the given weekdays. */
   async function deleteSeries(original: ScheduleBlock, days: readonly DayOfWeek[]): Promise<boolean> {
     error.value = null
@@ -394,6 +429,8 @@ export function useSchedule() {
     seriesDays,
     applySeries,
     deleteSeries,
+    deleteWithTemplate,
+    removeBlocks,
     updateBlock,
     deleteBlock,
     resetDay,
