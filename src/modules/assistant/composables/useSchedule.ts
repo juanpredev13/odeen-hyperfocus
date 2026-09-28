@@ -1,12 +1,14 @@
 import { computed, ref } from 'vue'
 import * as scheduleService from '@/modules/assistant/services/schedule.service'
-import { toISODate } from '@/modules/assistant/composables/intentionHelpers'
+import { fromISODate, toISODate } from '@/modules/assistant/composables/intentionHelpers'
 import {
   DEFAULT_SEGMENTS,
   DEFAULT_TEMPLATE,
   blocksForDate,
   findSiblings,
+  isSameBlock,
   isoDayOfWeek,
+  overlapsAny,
   planCopies,
   planSeries,
   templateBlocksFor,
@@ -245,9 +247,60 @@ export function useSchedule() {
 
   /** Weekdays where a template block repeats (its own day included). */
   function seriesDays(block: ScheduleBlock): DayOfWeek[] {
-    if (block.day_of_week === null) return []
     const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
-    return [block.day_of_week, ...findSiblings(templateBlocks, block).keys()].sort((a, b) => a - b)
+    const siblings = findSiblings(templateBlocks, block)
+    if (block.day_of_week !== null) return [block.day_of_week, ...siblings.keys()].sort((a, b) => a - b)
+    // A date block: the weekdays where the template has the same block.
+    if (block.date === null || siblings.size === 0) return []
+    const own = isoDayOfWeek(fromISODate(block.date))
+    return [...new Set<DayOfWeek>([own, ...siblings.keys()])].sort((a, b) => a - b)
+  }
+
+  /**
+   * Keeps this week's edited days in line with a series edit: the date copy
+   * of `original` on each of `dates` is updated with `fields` (or removed
+   * for `removeDates`). Dates that aren't edited are skipped — they already
+   * show the template.
+   */
+  async function syncDateCopies(
+    original: ScheduleBlock,
+    dates: readonly Date[],
+    removeDates: readonly Date[],
+    fields: BlockFields,
+  ): Promise<{ updated: Date[]; removed: Date[]; skipped: Date[] }> {
+    const report = { updated: [] as Date[], removed: [] as Date[], skipped: [] as Date[] }
+    const copyOn = (date: Date): ScheduleBlock | undefined => {
+      const iso = toISODate(date)
+      if (!overriddenDates.value.has(iso) || iso === original.date) return undefined
+      return blocks.value.find((b) => b.date === iso && isSameBlock(b, original))
+    }
+
+    for (const date of removeDates) {
+      const copy = copyOn(date)
+      if (!copy) continue
+      const result = await scheduleService.deleteBlocks([copy.id])
+      if (result.error) report.skipped.push(date)
+      else {
+        blocks.value = blocks.value.filter((b) => b.id !== copy.id)
+        report.removed.push(date)
+      }
+    }
+
+    const cleaned = clean(fields)
+    for (const date of dates) {
+      const copy = copyOn(date)
+      if (!copy) continue
+      if (overlapsAny(blocksOn(date), cleaned, copy.id)) {
+        report.skipped.push(date)
+        continue
+      }
+      const result = await scheduleService.updateBlock({ id: copy.id, ...cleaned })
+      if (result.data) {
+        replaceBlock(result.data)
+        report.updated.push(date)
+      } else report.skipped.push(date)
+    }
+    return report
   }
 
   /**
@@ -427,6 +480,7 @@ export function useSchedule() {
     createBlock,
     copyToDays,
     seriesDays,
+    syncDateCopies,
     applySeries,
     deleteSeries,
     deleteWithTemplate,

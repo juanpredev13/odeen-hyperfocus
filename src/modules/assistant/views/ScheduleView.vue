@@ -173,6 +173,7 @@ const {
   createBlock,
   copyToDays,
   seriesDays,
+  syncDateCopies,
   applySeries,
   deleteSeries,
   deleteWithTemplate,
@@ -353,35 +354,40 @@ async function handleSave(fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOf
   notice.value = null
   const parts: string[] = []
 
-  if (original && scope.kind === 'template' && original.day_of_week !== null) {
-    // Existing repeated block: keep every checked weekday in sync.
+  const baseDay = isoDayOfWeek(week[state.dayIndex] as Date)
+
+  if (original && scope.kind === 'template' && (original.day_of_week !== null || original.date !== null)) {
+    // Existing block, saved as a weekly routine: update its template copies on
+    // every checked weekday, create it where missing, remove it from unchecked
+    // days. A date block's own weekday is part of the series too.
+    const checked = original.date !== null ? [...new Set([baseDay, ...alsoDays])] : alsoDays
     busy.value = true
-    const plan = await applySeries(original, alsoDays, fields)
-    busy.value = false
+    const plan = await applySeries(original, checked, fields)
     if (!plan) {
+      busy.value = false
       editorError.value = error.value?.message ?? 'Saved this day, but could not update the other days'
       return
     }
-    const changed = [...plan.update.map((b) => b.day_of_week), ...plan.create].filter(
-      (d): d is DayOfWeek => d !== null,
+    // Edited days of this week show their own copies, not the template.
+    const dateOf = (d: DayOfWeek): Date => week[d - 1] as Date
+    const removedDays = plan.remove.map((b) => b.day_of_week).filter((d): d is DayOfWeek => d !== null)
+    const synced = await syncDateCopies(
+      original,
+      [baseDay, ...alsoDays].map(dateOf),
+      removedDays.map(dateOf),
+      fields,
     )
-    if (changed.length > 0) parts.push(`Also saved on ${dayList(changed)}.`)
-    const removed = plan.remove.map((b) => b.day_of_week).filter((d): d is DayOfWeek => d !== null)
-    if (removed.length > 0) parts.push(`Removed from ${dayList(removed)}.`)
-    if (plan.skipped.length > 0) parts.push(`Skipped ${dayList(plan.skipped)}: that time is taken.`)
-  } else if (original && original.date !== null && scope.kind === 'template') {
-    // A block that only lived on this date: keep it here and add it to the
-    // weekly template on its own weekday plus every checked day.
-    const baseDay = isoDayOfWeek(week[state.dayIndex] as Date)
-    busy.value = true
-    const copies = await copyToDays([baseDay, ...alsoDays].sort((a, b) => a - b), fields)
     busy.value = false
-    if (!copies) {
-      editorError.value = error.value?.message ?? 'Saved this day, but could not add it to the template'
-      return
-    }
-    if (copies.added.length > 0) parts.push(`Added to the weekly template on ${dayList(copies.added)}.`)
-    if (copies.skipped.length > 0) parts.push(`Skipped ${dayList(copies.skipped)}: that time is taken.`)
+
+    const changed = [...plan.update.map((b) => b.day_of_week), ...plan.create].filter(
+      (d): d is DayOfWeek => d !== null && (original.date !== null || d !== baseDay),
+    )
+    if (changed.length > 0) parts.push(`Weekly template updated on ${dayList([...new Set(changed)].sort((a, b) => a - b))}.`)
+    if (removedDays.length > 0) parts.push(`Removed from ${dayList(removedDays)}.`)
+    if (plan.skipped.length > 0) parts.push(`Skipped ${dayList(plan.skipped)}: that time is taken.`)
+    const syncedDays = synced.updated.map(isoDayOfWeek).sort((a, b) => a - b)
+    if (syncedDays.length > 0) parts.push(`This week's edited days updated: ${dayList(syncedDays)}.`)
+    if (synced.skipped.length > 0) parts.push(`Not updated this week on ${dayList(synced.skipped.map(isoDayOfWeek))}: that time is taken.`)
   } else if (alsoDays.length > 0) {
     busy.value = true
     const copies = await copyToDays(alsoDays, fields)
@@ -396,9 +402,8 @@ async function handleSave(fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOf
 
   // Edited days of this week don't show the template, so a new weekly block
   // is also placed on them directly — otherwise it would only appear next week.
-  if (mode.value === 'week' && scope.kind === 'template' && (!original || original.date !== null)) {
-    const baseDay = isoDayOfWeek(week[state.dayIndex] as Date)
-    const days = original ? alsoDays : [baseDay, ...alsoDays]
+  if (mode.value === 'week' && scope.kind === 'template' && !original) {
+    const days = [baseDay, ...alsoDays]
     const edited = await addToEditedDays(days, fields)
     if (edited.added.length > 0) parts.push(`Also placed on this week's edited days: ${dayList(edited.added)}.`)
     if (edited.skipped.length > 0) parts.push(`Not placed on ${dayList(edited.skipped)} this week: that time is taken.`)
