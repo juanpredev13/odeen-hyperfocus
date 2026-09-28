@@ -23,6 +23,7 @@ export default tseslint.config(
         PointerEvent: 'readonly',
         Element: 'readonly',
         HTMLElement: 'readonly',
+        crypto: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         setInterval: 'readonly',

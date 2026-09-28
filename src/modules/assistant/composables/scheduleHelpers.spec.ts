@@ -14,7 +14,8 @@ import {
   isoDayOfWeek,
   nextBlock,
   overlapsAny,
-  findSiblings,
+  seriesDateCopies,
+  seriesTemplateByDay,
   firstOverlap,
   planCopies,
   planSeries,
@@ -36,6 +37,7 @@ function block(partial: Partial<ScheduleBlock>): ScheduleBlock {
     end_minute: 720,
     title: null,
     note: null,
+    series_id: null,
     created_at: '2026-09-28T00:00:00Z',
     ...partial,
   }
@@ -250,22 +252,29 @@ describe('planCopies', () => {
   })
 })
 
-describe('findSiblings', () => {
-  const base = block({ id: 'mon', day_of_week: 1, start_minute: 420, end_minute: 480, title: 'Run' })
-  const template = [
-    base,
-    block({ id: 'tue', day_of_week: 2, start_minute: 420, end_minute: 480, title: 'Run' }),
-    block({ id: 'wed', day_of_week: 3, start_minute: 420, end_minute: 480, title: 'Swim' }),
-    block({ id: 'thu', day_of_week: 4, start_minute: 420, end_minute: 495, title: 'Run' }),
-    block({ id: 'fri', day_of_week: 5, start_minute: 420, end_minute: 480, title: 'Run' }),
-    block({ id: 'fri-other-seg', day_of_week: 5, segment_id: 'rest', start_minute: 420, end_minute: 480, title: 'Run' }),
+describe('seriesTemplateByDay / seriesDateCopies', () => {
+  const blocks = [
+    block({ id: 'mon', day_of_week: 1, series_id: 's1' }),
+    block({ id: 'tue', day_of_week: 2, series_id: 's1', segment_id: 'learning', start_minute: 600 }),
+    block({ id: 'wed-other', day_of_week: 3, series_id: 's2' }),
+    block({ id: 'thu-alone', day_of_week: 4, series_id: null }),
+    block({ id: 'copy', day_of_week: null, date: '2026-09-29', series_id: 's1' }),
   ]
 
-  it('matches segment, time range and title on other weekdays', () => {
-    expect([...findSiblings(template, base).entries()].map(([d, b]) => [d, b.id])).toEqual([
+  it('groups by series_id, not by matching fields', () => {
+    expect([...seriesTemplateByDay(blocks, 's1').entries()].map(([d, b]) => [d, b.id])).toEqual([
+      [1, 'mon'],
       [2, 'tue'],
-      [5, 'fri'],
     ])
+  })
+
+  it('returns the date copies of the series', () => {
+    expect(seriesDateCopies(blocks, 's1').map((b) => b.id)).toEqual(['copy'])
+  })
+
+  it('treats a null series as standalone', () => {
+    expect(seriesTemplateByDay(blocks, null).size).toBe(0)
+    expect(seriesDateCopies(blocks, null)).toEqual([])
   })
 })
 

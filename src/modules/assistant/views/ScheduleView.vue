@@ -113,6 +113,7 @@
       :template-mode="mode === 'template'"
       :base-day="isoDayOfWeek(week[editor.dayIndex] as Date)"
       :series-days="editor.block ? seriesDays(editor.block) : []"
+      :ignore-ids="editor.block ? [...seriesMemberIds(editor.block)] : []"
       :busy="busy"
       :error="editorError"
       @save="handleSave"
@@ -129,9 +130,14 @@ import AssistantNav from '@/modules/assistant/components/AssistantNav.vue'
 import WeekGrid, { type GridDay, type GridRange } from '@/modules/assistant/components/WeekGrid.vue'
 import DayAgenda, { type AgendaDay } from '@/modules/assistant/components/DayAgenda.vue'
 import SegmentPanel from '@/modules/assistant/components/SegmentPanel.vue'
-import BlockEditor, { type ApplyTo } from '@/modules/assistant/components/BlockEditor.vue'
+import BlockEditor from '@/modules/assistant/components/BlockEditor.vue'
 import ScheduleOnboarding from '@/modules/assistant/components/ScheduleOnboarding.vue'
-import { useSchedule, type BlockFields, type BlockScope } from '@/modules/assistant/composables/useSchedule'
+import {
+  useSchedule,
+  type ApplyTo,
+  type BlockFields,
+  type SaveReport,
+} from '@/modules/assistant/composables/useSchedule'
 import { toISODate } from '@/modules/assistant/composables/intentionHelpers'
 import {
   DAY_END_MINUTE,
@@ -139,7 +145,6 @@ import {
   SLOT_MINUTES,
   WEEKDAY_NAMES,
   blockMinutes,
-  findSiblings,
   isoDayOfWeek,
   minuteOfDay,
   overlapsAny,
@@ -170,16 +175,11 @@ const {
   addSegments,
   updateSegment,
   moveSegment,
-  createBlock,
-  copyToDays,
   seriesDays,
-  syncDateCopies,
-  applySeries,
-  deleteSeries,
-  deleteWithTemplate,
+  seriesMemberIds,
+  saveBlock,
+  removeBlock,
   removeBlocks,
-  updateBlock,
-  deleteBlock,
   resetDay,
 } = useSchedule()
 
@@ -323,12 +323,6 @@ function closeEditor(): void {
   editor.value = null
 }
 
-function scopeFor(dayIndex: number, applyTo: ApplyTo): BlockScope {
-  const date = week[dayIndex] as Date
-  if (mode.value === 'template' || applyTo === 'template') return { kind: 'template', day: isoDayOfWeek(date) }
-  return { kind: 'date', date }
-}
-
 async function run(action: () => Promise<boolean>): Promise<boolean> {
   busy.value = true
   const ok = await action()
@@ -337,171 +331,82 @@ async function run(action: () => Promise<boolean>): Promise<boolean> {
 }
 
 function dayList(days: readonly DayOfWeek[]): string {
-  return days.map((d) => WEEKDAY_NAMES[d].slice(0, 3)).join(', ')
+  return [...days]
+    .sort((a, b) => a - b)
+    .map((d) => WEEKDAY_NAMES[d].slice(0, 3))
+    .join(', ')
 }
 
-async function handleSave(fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOfWeek[]): Promise<void> {
+function describe(report: SaveReport, inSeries: boolean): string | null {
+  const parts: string[] = []
+  if (report.template.length > 1 || (inSeries && report.template.length > 0)) {
+    parts.push(`Routine saved on ${dayList(report.template)}.`)
+  }
+  if (report.removed.length > 0) parts.push(`Removed from ${dayList(report.removed)}.`)
+  if (report.skipped.length > 0) parts.push(`Skipped ${dayList(report.skipped)}: that time is taken.`)
+  if (report.week.length > 0) parts.push(`This week's edited days updated: ${dayList(report.week)}.`)
+  if (report.weekSkipped.length > 0) parts.push(`Not on ${dayList(report.weekSkipped)} this week: that time is taken.`)
+  return parts.length > 0 ? parts.join(' ') : null
+}
+
+async function handleSave(fields: BlockFields, applyTo: ApplyTo, days: DayOfWeek[]): Promise<void> {
   const state = editor.value
   if (!state) return
-  const original = state.block
-  const scope = scopeFor(state.dayIndex, applyTo)
-  const ok = await run(() => (original ? updateBlock(original, scope, fields) : createBlock(scope, fields)))
-  if (!ok) {
+  busy.value = true
+  const report = await saveBlock({
+    block: state.block,
+    date: week[state.dayIndex] as Date,
+    mode: mode.value,
+    applyTo,
+    days,
+    fields,
+  })
+  busy.value = false
+  if (!report) {
     editorError.value = error.value?.message ?? 'Could not save the block'
     return
   }
-
-  notice.value = null
-  const parts: string[] = []
-
-  const baseDay = isoDayOfWeek(week[state.dayIndex] as Date)
-
-  if (original && scope.kind === 'template' && (original.day_of_week !== null || original.date !== null)) {
-    // Existing block, saved as a weekly routine: update its template copies on
-    // every checked weekday, create it where missing, remove it from unchecked
-    // days. A date block's own weekday is part of the series too.
-    const checked = original.date !== null ? [...new Set([baseDay, ...alsoDays])] : alsoDays
-    busy.value = true
-    const plan = await applySeries(original, checked, fields)
-    if (!plan) {
-      busy.value = false
-      editorError.value = error.value?.message ?? 'Saved this day, but could not update the other days'
-      return
-    }
-    // Edited days of this week show their own copies, not the template.
-    const dateOf = (d: DayOfWeek): Date => week[d - 1] as Date
-    const removedDays = plan.remove.map((b) => b.day_of_week).filter((d): d is DayOfWeek => d !== null)
-    const synced = await syncDateCopies(
-      original,
-      [baseDay, ...alsoDays].map(dateOf),
-      removedDays.map(dateOf),
-      fields,
-    )
-    busy.value = false
-
-    const changed = [...plan.update.map((b) => b.day_of_week), ...plan.create].filter(
-      (d): d is DayOfWeek => d !== null && (original.date !== null || d !== baseDay),
-    )
-    if (changed.length > 0) parts.push(`Weekly template updated on ${dayList([...new Set(changed)].sort((a, b) => a - b))}.`)
-    if (removedDays.length > 0) parts.push(`Removed from ${dayList(removedDays)}.`)
-    if (plan.skipped.length > 0) parts.push(`Skipped ${dayList(plan.skipped)}: that time is taken.`)
-    const syncedDays = synced.updated.map(isoDayOfWeek).sort((a, b) => a - b)
-    if (syncedDays.length > 0) parts.push(`This week's edited days updated: ${dayList(syncedDays)}.`)
-    if (synced.skipped.length > 0) parts.push(`Not updated this week on ${dayList(synced.skipped.map(isoDayOfWeek))}: that time is taken.`)
-  } else if (alsoDays.length > 0) {
-    busy.value = true
-    const copies = await copyToDays(alsoDays, fields)
-    busy.value = false
-    if (!copies) {
-      editorError.value = error.value?.message ?? 'Saved, but could not copy to the other days'
-      return
-    }
-    if (copies.added.length > 0) parts.push(`Also added to ${dayList(copies.added)}.`)
-    if (copies.skipped.length > 0) parts.push(`Skipped ${dayList(copies.skipped)}: that time is taken.`)
-  }
-
-  // Edited days of this week don't show the template, so a new weekly block
-  // is also placed on them directly — otherwise it would only appear next week.
-  if (mode.value === 'week' && scope.kind === 'template' && !original) {
-    const days = [baseDay, ...alsoDays]
-    const edited = await addToEditedDays(days, fields)
-    if (edited.added.length > 0) parts.push(`Also placed on this week's edited days: ${dayList(edited.added)}.`)
-    if (edited.skipped.length > 0) parts.push(`Not placed on ${dayList(edited.skipped)} this week: that time is taken.`)
-  }
-
-  notice.value = parts.length > 0 ? parts.join(' ') : null
+  notice.value = describe(report, applyTo === 'series')
   closeEditor()
 }
 
-async function addToEditedDays(
-  days: readonly DayOfWeek[],
-  fields: BlockFields,
-): Promise<{ added: DayOfWeek[]; skipped: DayOfWeek[] }> {
-  const added: DayOfWeek[] = []
-  const skipped: DayOfWeek[] = []
-  busy.value = true
-  for (const day of [...days].sort((a, b) => a - b)) {
-    const date = week[day - 1] as Date
-    if (!isOverridden(date)) continue
-    if (overlapsAny(blocksOn(date), fields)) {
-      skipped.push(day)
-      continue
-    }
-    if (await createBlock({ kind: 'date', date }, fields)) added.push(day)
-    else skipped.push(day)
-  }
-  busy.value = false
-  return { added, skipped }
-}
-
-async function handleDelete(applyTo: ApplyTo, alsoDays: DayOfWeek[]): Promise<void> {
+async function handleDelete(applyTo: ApplyTo): Promise<void> {
   const state = editor.value
   if (!state?.block) return
-  const block = state.block
-  const scope = scopeFor(state.dayIndex, applyTo)
-  const baseDay = isoDayOfWeek(week[state.dayIndex] as Date)
-
-  // A date block deleted with "Every <weekday>": remove it here and its
-  // matching template blocks, so nothing hidden is left behind.
-  if (block.date !== null && scope.kind === 'template') {
-    busy.value = true
-    const removed = await deleteWithTemplate(block, [baseDay, ...alsoDays])
-    busy.value = false
-    if (!removed) {
-      editorError.value = error.value?.message ?? 'Could not delete the block'
-      return
-    }
-    notice.value =
-      removed.length > 0
-        ? `Deleted here and from the weekly template on ${dayList([...removed].sort((a, b) => a - b))}.`
-        : 'Deleted here. The weekly template had no matching block.'
-    closeEditor()
-    return
-  }
-
-  const series = scope.kind === 'template' && block.day_of_week !== null && alsoDays.length > 0
-  const ok = await run(() => (series ? deleteSeries(block, alsoDays) : deleteBlock(block, scope)))
-  if (!ok) {
+  busy.value = true
+  const days = await removeBlock({ block: state.block, date: week[state.dayIndex] as Date, mode: mode.value, applyTo })
+  busy.value = false
+  if (!days) {
     editorError.value = error.value?.message ?? 'Could not delete the block'
     return
   }
-  notice.value = series ? `Deleted from ${dayList([baseDay, ...alsoDays].sort((a, b) => a - b))}.` : null
+  notice.value = days.length > 0 ? `Routine deleted from ${dayList(days)}.` : null
   closeEditor()
 }
 
 /**
  * Clears the way for the block being edited: removes every block its range
- * overlaps on the day it is saved to — the template weekday plus the checked
- * repeat days, or just the date — leaving the edited block itself alone.
+ * overlaps on the days it is saved to — the template weekdays, or just the
+ * date — never touching the block's own series.
  */
 async function handleReplace(
   range: { start_minute: number; end_minute: number },
   applyTo: ApplyTo,
-  alsoDays: DayOfWeek[],
+  days: DayOfWeek[],
 ): Promise<void> {
   const state = editor.value
   if (!state) return
   editorError.value = null
   const date = week[state.dayIndex] as Date
-  const scope = scopeFor(state.dayIndex, applyTo)
-  // The edited block and its own copies on other weekdays are never "in the way".
-  const own = new Set<string>(state.block ? [state.block.id] : [])
-  if (state.block) {
-    const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
-    for (const sibling of findSiblings(templateBlocks, state.block).values()) own.add(sibling.id)
-  }
+  const own = state.block ? seriesMemberIds(state.block) : new Set<string>()
   const overlapping = (list: readonly ScheduleBlock[]): ScheduleBlock[] =>
     list.filter((b) => !own.has(b.id) && b.start_minute < range.end_minute && range.start_minute < b.end_minute)
 
-  let targets: ScheduleBlock[]
-  if (scope.kind === 'template') {
-    const days = state.block?.date == null ? [isoDayOfWeek(date), ...alsoDays] : alsoDays.concat(isoDayOfWeek(date))
-    targets = [...new Set(days)].flatMap((d) => overlapping(templateFor(d)))
-    // A date block also has to fit on its own date.
-    if (state.block?.date != null) targets = targets.concat(overlapping(blocksOn(date)))
-  } else {
-    targets = overlapping(blocksOn(date))
-  }
+  const toTemplate = applyTo === 'series' || applyTo === 'template'
+  let targets = toTemplate ? [...new Set(days)].flatMap((d) => overlapping(templateFor(d))) : []
+  // The date itself when that's where the block lives (This week).
+  if (mode.value === 'week' && (!toTemplate || state.block?.date != null)) targets = targets.concat(overlapping(blocksOn(date)))
+  targets = [...new Map(targets.map((b) => [b.id, b])).values()]
   if (targets.length === 0) return
 
   const ok = await run(() => removeBlocks(targets))
@@ -509,21 +414,31 @@ async function handleReplace(
     editorError.value = error.value?.message ?? 'Could not remove the overlapping blocks'
     return
   }
-  const days = [...new Set(targets.map((b) => b.day_of_week ?? isoDayOfWeek(date)))].sort((a, b) => a - b)
-  notice.value = `Replaced ${targets.length} overlapping ${targets.length === 1 ? 'block' : 'blocks'} on ${dayList(days)}.`
+  const hitDays = [...new Set(targets.map((b) => b.day_of_week ?? isoDayOfWeek(date)))]
+  notice.value = `Replaced ${targets.length} overlapping ${targets.length === 1 ? 'block' : 'blocks'} on ${dayList(hitDays)}.`
 }
 
+/** Dragging a block in a routine moves the whole routine. */
 async function handleDragUpdate(change: GridRange & { block: ScheduleBlock }): Promise<void> {
   const { block } = change
-  await run(() =>
-    updateBlock(block, scopeFor(change.dayIndex, 'date'), {
+  const inSeries = block.series_id !== null
+  busy.value = true
+  const report = await saveBlock({
+    block,
+    date: week[change.dayIndex] as Date,
+    mode: mode.value,
+    applyTo: inSeries ? 'series' : mode.value === 'template' ? 'template' : 'date',
+    days: inSeries ? seriesDays(block) : [],
+    fields: {
       segment_id: block.segment_id,
       start_minute: change.start,
       end_minute: change.end,
       title: block.title,
       note: block.note,
-    }),
-  )
+    },
+  })
+  busy.value = false
+  notice.value = report ? describe(report, inSeries) : (error.value?.message ?? 'Could not move the block')
 }
 
 async function handleResetDay(date: Date): Promise<void> {

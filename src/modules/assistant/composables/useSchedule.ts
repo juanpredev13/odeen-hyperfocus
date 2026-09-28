@@ -5,27 +5,64 @@ import {
   DEFAULT_SEGMENTS,
   DEFAULT_TEMPLATE,
   blocksForDate,
-  findSiblings,
-  isSameBlock,
   isoDayOfWeek,
   overlapsAny,
   planCopies,
   planSeries,
+  seriesDateCopies,
+  seriesTemplateByDay,
   templateBlocksFor,
   weekDates,
 } from '@/modules/assistant/composables/scheduleHelpers'
-import type { SeriesPlan } from '@/modules/assistant/composables/scheduleHelpers'
 import type {
   AssistantError,
+  CreateBlockPayload,
   CreateSegmentPayload,
   DayOfWeek,
   ScheduleBlock,
   ScheduleSegment,
+  UpdateBlockPayload,
   UpdateSegmentPayload,
 } from '@/modules/assistant/types'
 
 /** Where a block edit applies: the weekly template, or one calendar date. */
 export type BlockScope = { kind: 'template'; day: DayOfWeek } | { kind: 'date'; date: Date }
+
+/**
+ * Where an edit applies. `date`: this date only (standalone). `template`:
+ * the weekly template on the checked weekdays. `series`: every block of the
+ * block's series. `one`: only this block, taken out of its series.
+ */
+export type ApplyTo = 'date' | 'template' | 'series' | 'one'
+
+export interface SaveInput {
+  /** The block as it was before editing, or null for a new one. */
+  block: ScheduleBlock | null
+  /** The day being edited (a date in the loaded week). */
+  date: Date
+  mode: 'template' | 'week'
+  applyTo: ApplyTo
+  /** Checked weekdays ("Repeat on"); the edited day's weekday is always included. */
+  days: DayOfWeek[]
+  fields: BlockFields
+}
+
+/** What a save changed, for the notice. */
+export interface SaveReport {
+  /** Template weekdays saved (created or updated). */
+  template: DayOfWeek[]
+  /** Template weekdays the series was removed from. */
+  removed: DayOfWeek[]
+  /** Template weekdays skipped because the time is taken. */
+  skipped: DayOfWeek[]
+  /** This week's edited days updated or given a copy. */
+  week: DayOfWeek[]
+  weekSkipped: DayOfWeek[]
+}
+
+function emptyReport(): SaveReport {
+  return { template: [], removed: [], skipped: [], week: [], weekSkipped: [] }
+}
 
 export interface BlockFields {
   segment_id: string
@@ -115,7 +152,9 @@ export function useSchedule() {
       DEFAULT_TEMPLATE.flatMap((seed) => {
         const segment = byIndex[seed.segment]
         if (!segment) return []
+        const seriesId = seed.days.length > 1 ? crypto.randomUUID() : null
         return seed.days.map((day) => ({
+          series_id: seriesId,
           day_of_week: day,
           date: null,
           segment_id: segment.id,
@@ -222,177 +261,225 @@ export function useSchedule() {
     return true
   }
 
-  /**
-   * Copies a block's fields onto other weekdays of the template. Days where
-   * it would overlap an existing block are skipped and reported.
-   */
-  async function copyToDays(
-    days: readonly DayOfWeek[],
-    fields: BlockFields,
-  ): Promise<{ added: DayOfWeek[]; skipped: DayOfWeek[] } | null> {
-    error.value = null
-    const { free, taken } = planCopies(days, templateFor, fields)
-    if (free.length === 0) return { added: [], skipped: taken }
+  function uniqueDays(days: readonly DayOfWeek[]): DayOfWeek[] {
+    return [...new Set(days)].sort((a, b) => a - b)
+  }
 
-    const result = await scheduleService.createBlocks(
-      free.map((day) => ({ day_of_week: day, date: null, ...clean(fields) })),
-    )
+  /** The date of `day` in the week containing `anchor`. */
+  function dateInWeek(anchor: Date, day: DayOfWeek): Date {
+    return weekDates(anchor)[day - 1] as Date
+  }
+
+  /** Weekdays a block's series covers (its own weekday included); [] if standalone. */
+  function seriesDays(block: ScheduleBlock): DayOfWeek[] {
+    if (block.series_id === null) return []
+    const days: DayOfWeek[] = [...seriesTemplateByDay(blocks.value, block.series_id).keys()]
+    if (block.day_of_week !== null) days.push(block.day_of_week)
+    if (block.date !== null) days.push(isoDayOfWeek(fromISODate(block.date)))
+    return uniqueDays(days)
+  }
+
+  /** Ids of every loaded block in the same series (template and date copies). */
+  function seriesMemberIds(block: ScheduleBlock): Set<string> {
+    const ids = new Set<string>([block.id])
+    if (block.series_id === null) return ids
+    for (const b of blocks.value) if (b.series_id === block.series_id) ids.add(b.id)
+    return ids
+  }
+
+  async function insertBlocks(payloads: CreateBlockPayload[]): Promise<boolean> {
+    if (payloads.length === 0) return true
+    const result = await scheduleService.createBlocks(payloads)
     if (result.error) {
       error.value = result.error
-      return null
+      return false
     }
     blocks.value = [...blocks.value, ...(result.data ?? [])]
-    return { added: free, skipped: taken }
+    return true
   }
 
-  /** Weekdays where a template block repeats (its own day included). */
-  function seriesDays(block: ScheduleBlock): DayOfWeek[] {
-    const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
-    const siblings = findSiblings(templateBlocks, block)
-    if (block.day_of_week !== null) return [block.day_of_week, ...siblings.keys()].sort((a, b) => a - b)
-    // A date block: the weekdays where the template has the same block.
-    if (block.date === null || siblings.size === 0) return []
-    const own = isoDayOfWeek(fromISODate(block.date))
-    return [...new Set<DayOfWeek>([own, ...siblings.keys()])].sort((a, b) => a - b)
+  async function patchBlock(id: string, fields: Omit<UpdateBlockPayload, 'id'>): Promise<boolean> {
+    const result = await scheduleService.updateBlock({ id, ...fields })
+    if (result.error) {
+      error.value = result.error
+      return false
+    }
+    if (result.data) replaceBlock(result.data)
+    return true
+  }
+
+  async function dropBlocks(ids: readonly string[]): Promise<boolean> {
+    if (ids.length === 0) return true
+    const result = await scheduleService.deleteBlocks(ids)
+    if (result.error) {
+      error.value = result.error
+      return false
+    }
+    const gone = new Set(ids)
+    blocks.value = blocks.value.filter((b) => !gone.has(b.id))
+    return true
   }
 
   /**
-   * Keeps this week's edited days in line with a series edit: the date copy
-   * of `original` on each of `dates` is updated with `fields` (or removed
-   * for `removeDates`). Dates that aren't edited are skipped — they already
-   * show the template.
+   * Edited days of the week don't show the template, so a weekly block is
+   * also placed on them directly (same series). Taken times are skipped.
    */
-  async function syncDateCopies(
-    original: ScheduleBlock,
-    dates: readonly Date[],
-    removeDates: readonly Date[],
+  async function placeOnEditedDays(
+    anchor: Date,
+    days: readonly DayOfWeek[],
     fields: BlockFields,
-  ): Promise<{ updated: Date[]; removed: Date[]; skipped: Date[] }> {
-    const report = { updated: [] as Date[], removed: [] as Date[], skipped: [] as Date[] }
-    const copyOn = (date: Date): ScheduleBlock | undefined => {
+    seriesId: string | null,
+    report: SaveReport,
+  ): Promise<boolean> {
+    const payloads: CreateBlockPayload[] = []
+    for (const day of days) {
+      const date = dateInWeek(anchor, day)
       const iso = toISODate(date)
-      if (!overriddenDates.value.has(iso) || iso === original.date) return undefined
-      return blocks.value.find((b) => b.date === iso && isSameBlock(b, original))
-    }
-
-    for (const date of removeDates) {
-      const copy = copyOn(date)
-      if (!copy) continue
-      const result = await scheduleService.deleteBlocks([copy.id])
-      if (result.error) report.skipped.push(date)
-      else {
-        blocks.value = blocks.value.filter((b) => b.id !== copy.id)
-        report.removed.push(date)
-      }
-    }
-
-    const cleaned = clean(fields)
-    for (const date of dates) {
-      const copy = copyOn(date)
-      if (!copy) continue
-      if (overlapsAny(blocksOn(date), cleaned, copy.id)) {
-        report.skipped.push(date)
+      if (!overriddenDates.value.has(iso)) continue
+      if (seriesId !== null && blocks.value.some((b) => b.date === iso && b.series_id === seriesId)) continue
+      if (overlapsAny(blocksOn(date), fields)) {
+        report.weekSkipped.push(day)
         continue
       }
-      const result = await scheduleService.updateBlock({ id: copy.id, ...cleaned })
-      if (result.data) {
-        replaceBlock(result.data)
-        report.updated.push(date)
-      } else report.skipped.push(date)
+      payloads.push({ day_of_week: null, date: iso, ...fields, series_id: seriesId })
+      report.week.push(day)
+    }
+    return insertBlocks(payloads)
+  }
+
+  /**
+   * Saves a block from the editor. Rules:
+   * - `one`: edit only this block and take it out of its series (in This week,
+   *   a template block is first copied onto the date).
+   * - `date`: a standalone edit of this date (This week, "This day only").
+   * - `series`: edit every block of the series — template blocks on the
+   *   checked weekdays are updated, created where missing and removed from
+   *   unchecked days; this week's copies follow.
+   * - `template`: save into the weekly template on the checked weekdays; when
+   *   that spans several days (or links a date block), the blocks become a
+   *   new series.
+   */
+  async function saveBlock(input: SaveInput): Promise<SaveReport | null> {
+    error.value = null
+    const { block, date, applyTo, mode } = input
+    const fields = clean(input.fields)
+    const base = isoDayOfWeek(date)
+    const days = uniqueDays([base, ...input.days])
+    const report = emptyReport()
+
+    if (applyTo === 'one' && block) {
+      if (mode === 'week' && block.date === null) {
+        const copies = await ensureOverride(date)
+        if (copies === null) return null
+        const copy = copies.find((c) => c.series_id === block.series_id && c.start_minute === block.start_minute)
+        if (!copy) {
+          error.value = { message: 'Could not find this block on that day' }
+          return null
+        }
+        return (await patchBlock(copy.id, { ...fields, series_id: null })) ? report : null
+      }
+      return (await patchBlock(block.id, { ...fields, series_id: null })) ? report : null
+    }
+
+    if (applyTo === 'date') {
+      const ok = block ? await updateBlock(block, { kind: 'date', date }, fields) : await createBlock({ kind: 'date', date }, fields)
+      return ok ? report : null
+    }
+
+    if (applyTo === 'series' && block && block.series_id !== null) {
+      const seriesId = block.series_id
+      const plan = planSeries(days, seriesTemplateByDay(blocks.value, seriesId), templateFor, fields)
+      const removedDays = plan.remove.map((b) => b.day_of_week).filter((d): d is DayOfWeek => d !== null)
+
+      const updated = await Promise.all(plan.update.map((b) => patchBlock(b.id, fields)))
+      if (updated.includes(false)) return null
+      if (!(await insertBlocks(plan.create.map((day) => ({ day_of_week: day, date: null, ...fields, series_id: seriesId }))))) return null
+      if (!(await dropBlocks(plan.remove.map((b) => b.id)))) return null
+
+      // This week's copies of the series follow the edit.
+      const staleCopies: string[] = []
+      for (const copy of seriesDateCopies(blocks.value, seriesId)) {
+        const copyDate = fromISODate(copy.date as string)
+        const day = isoDayOfWeek(copyDate)
+        if (!days.includes(day)) {
+          staleCopies.push(copy.id)
+          continue
+        }
+        if (overlapsAny(blocksOn(copyDate), fields, copy.id)) {
+          report.weekSkipped.push(day)
+          continue
+        }
+        if (!(await patchBlock(copy.id, fields))) return null
+        report.week.push(day)
+      }
+      if (!(await dropBlocks(staleCopies))) return null
+      if (!(await placeOnEditedDays(date, plan.create, fields, seriesId, report))) return null
+
+      report.template = uniqueDays([...plan.update.map((b) => b.day_of_week as DayOfWeek), ...plan.create])
+      report.removed = removedDays
+      report.skipped = plan.skipped
+      return report
+    }
+
+    // `template`: a new block, a standalone template block, or a date block
+    // being turned into a weekly routine.
+    const isDateBlock = block !== null && block.date !== null
+    const seriesId = days.length > 1 || isDateBlock ? crypto.randomUUID() : null
+    const targetDays = block && !isDateBlock ? days.filter((d) => d !== base) : days
+    const { free, taken } = planCopies(targetDays, templateFor, fields)
+
+    if (block) {
+      if (!(await patchBlock(block.id, { ...fields, series_id: seriesId }))) return null
+    } else if (taken.includes(base)) {
+      error.value = { message: 'Blocks cannot overlap on the same day' }
+      return null
+    }
+    if (!(await insertBlocks(free.map((day) => ({ day_of_week: day, date: null, ...fields, series_id: seriesId }))))) {
+      return null
+    }
+    report.template = uniqueDays(block && !isDateBlock ? [base, ...free] : free)
+    report.skipped = taken
+
+    // A routine shows up this week too, even on days edited this week.
+    if (seriesId !== null || mode === 'week') {
+      const others = isDateBlock ? days.filter((d) => d !== base) : days
+      if (!(await placeOnEditedDays(date, others, fields, seriesId, report))) return null
     }
     return report
   }
 
   /**
-   * Saves a repeated template block across weekdays. `original` is the block
-   * as it was before editing (used to find its siblings); `checkedDays` are
-   * the other weekdays it should now be on. The block's own day is saved by
-   * the caller.
+   * Deletes a block from the editor: the whole series (`series`), or only
+   * this block (`one` / standalone). In This week, deleting only a template
+   * block's day copies the day first, so the template stays intact.
    */
-  async function applySeries(
-    original: ScheduleBlock,
-    checkedDays: readonly DayOfWeek[],
-    fields: BlockFields,
-  ): Promise<SeriesPlan | null> {
+  async function removeBlock(input: Omit<SaveInput, 'fields' | 'days'>): Promise<DayOfWeek[] | null> {
     error.value = null
-    const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
-    const siblings = findSiblings(templateBlocks, original)
-    const plan = planSeries(checkedDays, siblings, templateFor, fields)
-    const cleaned = clean(fields)
+    const { block, date, applyTo, mode } = input
+    if (!block) return []
 
-    const [updates, created, removed] = await Promise.all([
-      Promise.all(plan.update.map((b) => scheduleService.updateBlock({ id: b.id, ...cleaned }))),
-      plan.create.length > 0
-        ? scheduleService.createBlocks(plan.create.map((day) => ({ day_of_week: day, date: null, ...cleaned })))
-        : Promise.resolve({ data: [] as ScheduleBlock[], error: null }),
-      scheduleService.deleteBlocks(plan.remove.map((b) => b.id)),
-    ])
-
-    for (const result of updates) if (result.data) replaceBlock(result.data)
-    if (created.data) blocks.value = [...blocks.value, ...created.data]
-    if (!removed.error) {
-      const gone = new Set(plan.remove.map((b) => b.id))
-      blocks.value = blocks.value.filter((b) => !gone.has(b.id))
+    if (applyTo === 'series' && block.series_id !== null) {
+      const days = seriesDays(block)
+      const seriesId = block.series_id
+      const result = await scheduleService.deleteSeries(seriesId)
+      if (result.error) {
+        error.value = result.error
+        return null
+      }
+      blocks.value = blocks.value.filter((b) => b.series_id !== seriesId)
+      return days
     }
 
-    const failed = updates.find((r) => r.error)?.error ?? created.error ?? removed.error
-    if (failed) {
-      error.value = failed
-      return null
+    if (mode === 'week' && block.date === null) {
+      return (await deleteBlock(block, { kind: 'date', date })) ? [] : null
     }
-    return plan
-  }
-
-  /**
-   * Deletes a date block and the matching weekly-template blocks (same
-   * segment, time and focus) on the given weekdays.
-   */
-  async function deleteWithTemplate(dated: ScheduleBlock, days: readonly DayOfWeek[]): Promise<DayOfWeek[] | null> {
-    error.value = null
-    const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
-    const matches = findSiblings(templateBlocks, { ...dated, day_of_week: null })
-    const fromTemplate = days.flatMap((d) => matches.get(d) ?? [])
-
-    const ids = [dated.id, ...fromTemplate.map((b) => b.id)]
-    const result = await scheduleService.deleteBlocks(ids)
-    if (result.error) {
-      error.value = result.error
-      return null
-    }
-    const gone = new Set(ids)
-    blocks.value = blocks.value.filter((b) => !gone.has(b.id))
-    return fromTemplate.map((b) => b.day_of_week).filter((d): d is DayOfWeek => d !== null)
+    return (await dropBlocks([block.id])) ? [] : null
   }
 
   /** Deletes blocks by id, wherever they live (template or date). */
   async function removeBlocks(targets: readonly ScheduleBlock[]): Promise<boolean> {
     error.value = null
-    const ids = targets.map((b) => b.id)
-    const result = await scheduleService.deleteBlocks(ids)
-    if (result.error) {
-      error.value = result.error
-      return false
-    }
-    const gone = new Set(ids)
-    blocks.value = blocks.value.filter((b) => !gone.has(b.id))
-    return true
-  }
-
-  /** Deletes a template block and its siblings on the given weekdays. */
-  async function deleteSeries(original: ScheduleBlock, days: readonly DayOfWeek[]): Promise<boolean> {
-    error.value = null
-    const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
-    const siblings = findSiblings(templateBlocks, original)
-    const targets = [original, ...days.flatMap((d) => siblings.get(d) ?? [])]
-
-    const result = await scheduleService.deleteBlocks(targets.map((b) => b.id))
-    if (result.error) {
-      error.value = result.error
-      return false
-    }
-    const gone = new Set(targets.map((b) => b.id))
-    blocks.value = blocks.value.filter((b) => !gone.has(b.id))
-    return true
+    return dropBlocks(targets.map((b) => b.id))
   }
 
   /**
@@ -478,12 +565,10 @@ export function useSchedule() {
     updateSegment,
     moveSegment,
     createBlock,
-    copyToDays,
     seriesDays,
-    syncDateCopies,
-    applySeries,
-    deleteSeries,
-    deleteWithTemplate,
+    seriesMemberIds,
+    saveBlock,
+    removeBlock,
     removeBlocks,
     updateBlock,
     deleteBlock,
