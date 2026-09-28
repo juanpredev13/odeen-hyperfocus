@@ -169,6 +169,16 @@ export async function deleteBlock(id: string): Promise<AssistantResult<null>> {
   return { data: null, error: null }
 }
 
+export async function deleteBlocks(ids: readonly string[]): Promise<AssistantResult<null>> {
+  if (ids.length === 0) return { data: null, error: null }
+
+  const { error } = await supabase.from('schedule_blocks').delete().in('id', ids)
+
+  if (error) return { data: null, error: { message: error.message } }
+
+  return { data: null, error: null }
+}
+
 // ── Day overrides ──
 
 export async function fetchOverrides(

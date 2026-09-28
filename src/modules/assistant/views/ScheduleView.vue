@@ -41,6 +41,13 @@
         </RouterLink>
       </header>
 
+      <p v-if="notice" class="schedule__notice" role="status">
+        {{ notice }}
+        <button class="schedule__notice-close" type="button" aria-label="Dismiss" @click="notice = null">
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </p>
+
       <ul v-if="mode === 'week' && editedDays.length > 0" class="schedule__edited" aria-label="Edited days">
         <li v-for="day in editedDays" :key="day.key" class="schedule__edited-item">
           {{ day.label }} edited
@@ -102,6 +109,9 @@
       :day-blocks="gridDays[editor.dayIndex]?.blocks ?? []"
       :context-label="editor.contextLabel"
       :scope-choice="editor.scopeChoice"
+      :template-mode="mode === 'template'"
+      :base-day="isoDayOfWeek(week[editor.dayIndex] as Date)"
+      :series-days="editor.block ? seriesDays(editor.block) : []"
       :busy="busy"
       :error="editorError"
       @save="handleSave"
@@ -134,7 +144,7 @@ import {
   snapMinutes,
   weekDates,
 } from '@/modules/assistant/composables/scheduleHelpers'
-import type { CreateSegmentPayload, ScheduleBlock } from '@/modules/assistant/types'
+import type { CreateSegmentPayload, DayOfWeek, ScheduleBlock } from '@/modules/assistant/types'
 
 type Mode = 'template' | 'week'
 
@@ -158,6 +168,10 @@ const {
   updateSegment,
   moveSegment,
   createBlock,
+  copyToDays,
+  seriesDays,
+  applySeries,
+  deleteSeries,
   updateBlock,
   deleteBlock,
   resetDay,
@@ -251,6 +265,7 @@ interface EditorState {
 
 const editor = ref<EditorState | null>(null)
 const editorError = ref<string | null>(null)
+const notice = ref<string | null>(null)
 let editorKey = 0
 
 function contextFor(dayIndex: number): { contextLabel: string; scopeChoice: EditorState['scopeChoice'] } {
@@ -315,24 +330,69 @@ async function run(action: () => Promise<boolean>): Promise<boolean> {
   return ok
 }
 
-async function handleSave(fields: BlockFields, applyTo: ApplyTo): Promise<void> {
-  const state = editor.value
-  if (!state) return
-  const scope = scopeFor(state.dayIndex, applyTo)
-  const ok = await run(() =>
-    state.block ? updateBlock(state.block, scope, fields) : createBlock(scope, fields),
-  )
-  if (ok) closeEditor()
-  else editorError.value = error.value?.message ?? 'Could not save the block'
+function dayList(days: readonly DayOfWeek[]): string {
+  return days.map((d) => WEEKDAY_NAMES[d].slice(0, 3)).join(', ')
 }
 
-async function handleDelete(applyTo: ApplyTo): Promise<void> {
+async function handleSave(fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOfWeek[]): Promise<void> {
+  const state = editor.value
+  if (!state) return
+  const original = state.block
+  const scope = scopeFor(state.dayIndex, applyTo)
+  const ok = await run(() => (original ? updateBlock(original, scope, fields) : createBlock(scope, fields)))
+  if (!ok) {
+    editorError.value = error.value?.message ?? 'Could not save the block'
+    return
+  }
+
+  notice.value = null
+  const parts: string[] = []
+
+  if (original && scope.kind === 'template' && original.day_of_week !== null) {
+    // Existing repeated block: keep every checked weekday in sync.
+    busy.value = true
+    const plan = await applySeries(original, alsoDays, fields)
+    busy.value = false
+    if (!plan) {
+      editorError.value = error.value?.message ?? 'Saved this day, but could not update the other days'
+      return
+    }
+    const changed = [...plan.update.map((b) => b.day_of_week), ...plan.create].filter(
+      (d): d is DayOfWeek => d !== null,
+    )
+    if (changed.length > 0) parts.push(`Also saved on ${dayList(changed)}.`)
+    const removed = plan.remove.map((b) => b.day_of_week).filter((d): d is DayOfWeek => d !== null)
+    if (removed.length > 0) parts.push(`Removed from ${dayList(removed)}.`)
+    if (plan.skipped.length > 0) parts.push(`Skipped ${dayList(plan.skipped)}: that time is taken.`)
+  } else if (alsoDays.length > 0) {
+    busy.value = true
+    const copies = await copyToDays(alsoDays, fields)
+    busy.value = false
+    if (!copies) {
+      editorError.value = error.value?.message ?? 'Saved, but could not copy to the other days'
+      return
+    }
+    if (copies.added.length > 0) parts.push(`Also added to ${dayList(copies.added)}.`)
+    if (copies.skipped.length > 0) parts.push(`Skipped ${dayList(copies.skipped)}: that time is taken.`)
+  }
+
+  notice.value = parts.length > 0 ? parts.join(' ') : null
+  closeEditor()
+}
+
+async function handleDelete(applyTo: ApplyTo, alsoDays: DayOfWeek[]): Promise<void> {
   const state = editor.value
   if (!state?.block) return
   const block = state.block
-  const ok = await run(() => deleteBlock(block, scopeFor(state.dayIndex, applyTo)))
-  if (ok) closeEditor()
-  else editorError.value = error.value?.message ?? 'Could not delete the block'
+  const scope = scopeFor(state.dayIndex, applyTo)
+  const series = scope.kind === 'template' && block.day_of_week !== null && alsoDays.length > 0
+  const ok = await run(() => (series ? deleteSeries(block, alsoDays) : deleteBlock(block, scope)))
+  if (!ok) {
+    editorError.value = error.value?.message ?? 'Could not delete the block'
+    return
+  }
+  notice.value = series ? `Deleted from ${dayList([isoDayOfWeek(week[state.dayIndex] as Date), ...alsoDays].sort((a, b) => a - b))}.` : null
+  closeEditor()
 }
 
 async function handleDragUpdate(change: GridRange & { block: ScheduleBlock }): Promise<void> {
@@ -467,6 +527,32 @@ onUnmounted(() => {
 
 .schedule__balance-link .material-symbols-outlined {
   font-size: var(--icon-size-sm);
+}
+
+.schedule__notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  align-self: flex-start;
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-done);
+  font-size: var(--font-size-sm);
+  color: var(--color-status-done-text);
+}
+
+.schedule__notice-close {
+  display: flex;
+  padding: 2px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.schedule__notice-close .material-symbols-outlined {
+  font-size: 16px;
 }
 
 .schedule__edited {
