@@ -9,18 +9,47 @@
       aria-label="Quick capture"
       @submit.prevent="save"
     >
-      <input
-        ref="inputRef"
-        v-model="text"
-        class="quick-capture__input"
-        type="text"
-        :maxlength="MAX_CAPTURE_LENGTH"
-        placeholder="Capture anything… (idea: / problem: / worry: / waiting:)"
-        aria-label="Capture text"
-        @keydown.esc.stop.prevent="close"
-      />
+      <div class="quick-capture__row">
+        <input
+          ref="inputRef"
+          v-model="text"
+          class="quick-capture__input"
+          type="text"
+          :maxlength="MAX_CAPTURE_LENGTH"
+          placeholder="Capture anything… (tarea / propósito / idea: …)"
+          aria-label="Capture text"
+          @keydown.esc.stop.prevent="close"
+        />
+        <button
+          v-if="voice.available.value"
+          class="quick-capture__mic"
+          :class="{ 'quick-capture__mic--recording': voice.phase.value === 'recording' }"
+          type="button"
+          :disabled="voice.phase.value === 'downloading' || voice.phase.value === 'transcribing'"
+          :aria-pressed="voice.phase.value === 'recording'"
+          :title="voice.phase.value === 'recording' ? 'Stop and transcribe' : 'Speak'"
+          @click="voice.toggle()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{ micIcon }}</span>
+        </button>
+      </div>
+      <p v-if="voiceHint" class="quick-capture__voice-hint" role="status">{{ voiceHint }}</p>
 
-      <div class="quick-capture__kinds" role="radiogroup" aria-label="Kind">
+      <div v-if="command.type === 'task'" class="quick-capture__target">
+        <span class="material-symbols-outlined" aria-hidden="true">task_alt</span>
+        New task in
+        <select v-model="projectId" class="quick-capture__select" aria-label="Project">
+          <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+        </select>
+        <span v-if="command.energy" class="quick-capture__meta">energy {{ command.energy }}</span>
+        <span v-if="command.impact" class="quick-capture__meta">impact {{ command.impact }}</span>
+      </div>
+      <div v-else-if="command.type === 'intention'" class="quick-capture__target">
+        <span class="material-symbols-outlined" aria-hidden="true">flag</span>
+        Today's intention
+      </div>
+
+      <div v-if="command.type === 'capture'" class="quick-capture__kinds" role="radiogroup" aria-label="Kind">
         <button
           v-for="k in CAPTURE_KINDS"
           :key="k.id"
@@ -38,9 +67,9 @@
 
       <div class="quick-capture__footer">
         <span class="quick-capture__hint"><kbd>↵</kbd> save · <kbd>Esc</kbd> close</span>
-        <button class="quick-capture__save" type="submit" :disabled="saving || !canSave">Capture</button>
+        <button class="quick-capture__save" type="submit" :disabled="saving || !canSave">{{ saveLabel }}</button>
       </div>
-      <p v-if="error" class="quick-capture__error" role="alert">{{ error.message }}</p>
+      <p v-if="errorMessage" class="quick-capture__error" role="alert">{{ errorMessage }}</p>
     </form>
 
     <button
@@ -61,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useCaptures } from '@/modules/assistant/composables/useCaptures'
 import {
   CAPTURE_KINDS,
@@ -71,10 +100,18 @@ import {
   isValidCaptureText,
   parseQuickCapture,
 } from '@/modules/assistant/composables/captureHelpers'
+import { matchProject, parseVoiceCommand } from '@/modules/assistant/composables/voiceCommand'
+import { useIntentions } from '@/modules/assistant/composables/useIntentions'
+import { useVoiceInput } from '@/modules/assistant/composables/useVoiceInput'
 import { useActiveSessionId } from '@/modules/focus/composables/useFocusSession'
+import { useProjects } from '@/modules/projects/composables/useProjects'
+import { createTask } from '@/modules/tasks/services/tasks.service'
+import { QUICK_CAPTURE_EVENT } from '@/services/native'
 import type { CaptureKind } from '@/modules/assistant/types'
 
 const { capture, error } = useCaptures()
+const intentions = useIntentions()
+const { projects, activeProject, fetchProjects } = useProjects()
 // Captures made during a running focus session are linked to it.
 const activeSessionId = useActiveSessionId()
 
@@ -87,17 +124,81 @@ const inputRef = ref<HTMLInputElement | null>(null)
 
 // A typed "prefix:" wins over the chip selection, so the chips mirror the result.
 const preview = computed(() => parseQuickCapture(text.value, kind.value))
-const canSave = computed(() => isValidCaptureText(preview.value.text))
+
+// "tarea …" / "propósito …" (spoken or typed) turn the capture into a task or an intention.
+const command = computed(() => parseVoiceCommand(text.value))
+const projectId = ref<string | null>(null)
+const actionError = ref<string | null>(null)
+
+const canSave = computed(() => {
+  if (command.value.type === 'task') return isValidCaptureText(command.value.title) && projectId.value !== null
+  if (command.value.type === 'intention') return isValidCaptureText(command.value.text)
+  return isValidCaptureText(preview.value.text)
+})
+const saveLabel = computed(() =>
+  command.value.type === 'task' ? 'Create task' : command.value.type === 'intention' ? 'Set intention' : 'Capture',
+)
+const errorMessage = computed(
+  () => actionError.value ?? error.value?.message ?? intentions.error.value?.message ?? null,
+)
+
+const voice = useVoiceInput(applyTranscript)
+const micIcon = computed(() => {
+  switch (voice.phase.value) {
+    case 'recording':
+      return 'stop_circle'
+    case 'downloading':
+    case 'transcribing':
+      return 'progress_activity'
+    default:
+      return 'mic'
+  }
+})
+const voiceHint = computed(() => {
+  if (voice.error.value) return voice.error.value
+  if (voice.phase.value === 'downloading') return voice.progress.value
+  if (voice.phase.value === 'recording') return 'Listening… say "tarea …", "propósito …" or just the thought'
+  if (voice.phase.value === 'transcribing') return 'Transcribing…'
+  return ''
+})
+
+/** Spoken capture kinds ("idea, …", "me preocupa …") pick the chip and drop the keyword. */
+function applyTranscript(transcript: string): void {
+  const cmd = parseVoiceCommand(transcript)
+  if (cmd.type === 'capture') {
+    kind.value = cmd.kind
+    text.value = cmd.text
+  } else {
+    text.value = transcript
+  }
+  inputRef.value?.focus()
+}
+
+// Pick the spoken project, else the active one, else the first.
+watch(
+  [() => (command.value.type === 'task' ? command.value.projectHint : null), projects],
+  ([hint]) => {
+    const match = matchProject(projects.value, hint)
+    if (match) projectId.value = match.id
+    else if (projectId.value === null) projectId.value = activeProject.value?.id ?? projects.value[0]?.id ?? null
+  },
+  { immediate: true },
+)
 
 async function show(): Promise<void> {
   open.value = true
   status.value = ''
+  actionError.value = null
+  if (projects.value.length === 0) void fetchProjects()
   await nextTick()
   inputRef.value?.focus()
 }
 
 function close(): void {
+  void voice.cancel()
   open.value = false
+  projectId.value = null
+  actionError.value = null
   text.value = ''
   kind.value = DEFAULT_CAPTURE_KIND
 }
@@ -112,11 +213,40 @@ function pickKind(k: CaptureKind): void {
 async function save(): Promise<void> {
   if (!canSave.value || saving.value) return
   saving.value = true
-  const saved = await capture(text.value, kind.value, activeSessionId.value)
+  actionError.value = null
+  const cmd = command.value
+  let done = false
+
+  if (cmd.type === 'task' && projectId.value) {
+    const result = await createTask({
+      project_id: projectId.value,
+      title: cmd.title,
+      description: null,
+      status: 'todo',
+      energy_level: cmd.energy ?? 1,
+      impact_score: cmd.impact ?? 1,
+      is_attractive: false,
+    })
+    if (result.error) actionError.value = result.error.message
+    else {
+      done = true
+      status.value = 'Task created'
+    }
+  } else if (cmd.type === 'intention') {
+    // Loads today's list first so the Rule-of-3 slot check is accurate.
+    await intentions.load()
+    done = await intentions.add('day', new Date(), { text: cmd.text })
+    if (done) status.value = "Added to today's intentions"
+  } else {
+    const saved = await capture(text.value, kind.value, activeSessionId.value)
+    if (saved) {
+      done = true
+      status.value = `Captured as ${getKindInfo(saved.kind).label.toLowerCase()}`
+    }
+  }
+
   saving.value = false
-  if (!saved) return
-  status.value = `Captured as ${getKindInfo(saved.kind).label.toLowerCase()}`
-  close()
+  if (done) close()
 }
 
 function onKeydown(e: KeyboardEvent): void {
@@ -128,8 +258,19 @@ function onKeydown(e: KeyboardEvent): void {
   }
 }
 
-onMounted(() => document.addEventListener('keydown', onKeydown))
-onUnmounted(() => document.removeEventListener('keydown', onKeydown))
+// Fired by the desktop global shortcut and the tray menu (see @/services/native).
+function onNativeCapture(): void {
+  if (!open.value) void show()
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onKeydown)
+  window.addEventListener(QUICK_CAPTURE_EVENT, onNativeCapture)
+})
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKeydown)
+  window.removeEventListener(QUICK_CAPTURE_EVENT, onNativeCapture)
+})
 </script>
 
 <style scoped>
@@ -174,6 +315,65 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
   color: var(--color-primary);
   background: var(--color-surface);
   outline: none;
+}
+
+.quick-capture__row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.quick-capture__row .quick-capture__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-capture__mic {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.quick-capture__mic:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.quick-capture__mic--recording {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.quick-capture__voice-hint,
+.quick-capture__meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+.quick-capture__target {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+}
+
+.quick-capture__select {
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 2px var(--space-sm);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
 }
 
 .quick-capture__input:focus {

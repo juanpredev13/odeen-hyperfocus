@@ -82,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchTask, updateStatus } from '@/modules/tasks/services/tasks.service'
 import type { Task } from '@/modules/tasks/types'
@@ -95,6 +95,7 @@ import SessionSettingsModal from '@/modules/focus/components/SessionSettingsModa
 import { useFocusSession } from '@/modules/focus/composables/useFocusSession'
 import { pickBreakActivity } from '@/modules/focus/composables/sessionHelpers'
 import { playEndChime } from '@/modules/focus/composables/endSound'
+import { isWindowFocused, notify, setTrayTitle } from '@/services/native'
 
 const route = useRoute()
 const router = useRouter()
@@ -126,8 +127,28 @@ const {
 } = useFocusSession({
   onTimeUp: () => {
     if (settings.value.end_sound) playEndChime()
+    void notifyTimeUp()
   },
 })
+
+/** System notification only when ODEEN is in the background; in front, the Time's up screen is enough. */
+async function notifyTimeUp(): Promise<void> {
+  if (await isWindowFocused()) return
+  await notify("Time's up", task.value ? `Session on "${task.value.title}" reached its planned time.` : 'Session reached its planned time.')
+}
+
+// Session countdown next to the tray icon (desktop shell only).
+watch([phase, secondsLeft], ([p, s]) => {
+  if (p === 'running') void setTrayTitle(formatClock(s))
+  else if (p === 'timeup') void setTrayTitle("Time's up")
+  else void setTrayTitle('')
+})
+
+function formatClock(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60)
+  const s = totalSeconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
 
 const suggested = computed(() => suggestedMinutes(settings.value.default_session_minutes))
 const breakActivity = computed(() =>
@@ -171,6 +192,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  void setTrayTitle('')
   document.removeEventListener('keydown', handleKeydown)
 })
 </script>

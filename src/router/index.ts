@@ -86,6 +86,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/assistant/views/SegmentBalanceView.vue'),
       },
       {
+        path: 'native',
+        name: 'native-lab',
+        component: () => import('@/app/NativeLabView.vue'),
+      },
+      {
         path: 'design-system',
         name: 'design-system',
         component: () => import('@/modules/projects/views/DesignSystemView.vue'),
