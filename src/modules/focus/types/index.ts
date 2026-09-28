@@ -9,6 +9,8 @@ export interface FocusSession {
   id: string
   user_id: string
   task_id: string | null
+  /** Schedule segment the session ran in (#63). */
+  segment_id: string | null
   mode: SessionMode
   planned_minutes: number
   actual_minutes: number | null
@@ -20,7 +22,8 @@ export interface FocusSession {
   created_at: string
 }
 
-export type StartSessionPayload = Pick<FocusSession, 'task_id' | 'mode' | 'planned_minutes'>
+export type StartSessionPayload = Pick<FocusSession, 'task_id' | 'mode' | 'planned_minutes'> &
+  Partial<Pick<FocusSession, 'segment_id'>>
 
 /** setup → running → timeup (optional) → done */
 export type SessionPhase = 'setup' | 'running' | 'timeup' | 'done'

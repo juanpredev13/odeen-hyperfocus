@@ -116,3 +116,57 @@ export type CheckinAnswers = Pick<
   AwarenessCheckin,
   'intentional' | 'on_consequential' | 'space_fullness' | 'energy'
 >
+
+export type SegmentColor = 'emerald' | 'mint' | 'sage' | 'amber' | 'slate' | 'sky' | 'rose'
+
+export interface ScheduleSegment {
+  id: string
+  user_id: string
+  name: string
+  icon: string
+  color_key: SegmentColor
+  position: number
+  archived: boolean
+  created_at: string
+}
+
+export type CreateSegmentPayload = Pick<ScheduleSegment, 'name' | 'icon' | 'color_key' | 'position'>
+
+export type UpdateSegmentPayload = Partial<
+  Pick<ScheduleSegment, 'name' | 'icon' | 'color_key' | 'position' | 'archived'>
+> & { id: string }
+
+/** ISO weekday: 1 = Monday … 7 = Sunday. */
+export type DayOfWeek = 1 | 2 | 3 | 4 | 5 | 6 | 7
+
+/**
+ * A time range on one day. Template blocks have `day_of_week`; override
+ * blocks have `date` (YYYY-MM-DD). Minutes are from local midnight.
+ */
+export interface ScheduleBlock {
+  id: string
+  user_id: string
+  segment_id: string
+  day_of_week: DayOfWeek | null
+  date: string | null
+  start_minute: number
+  end_minute: number
+  title: string | null
+  note: string | null
+  created_at: string
+}
+
+export type BlockDay = { day_of_week: DayOfWeek; date: null } | { day_of_week: null; date: string }
+
+export type CreateBlockPayload = BlockDay &
+  Pick<ScheduleBlock, 'segment_id' | 'start_minute' | 'end_minute' | 'title' | 'note'>
+
+export type UpdateBlockPayload = Partial<
+  Pick<ScheduleBlock, 'segment_id' | 'start_minute' | 'end_minute' | 'title' | 'note'>
+> & { id: string }
+
+export interface DayOverride {
+  user_id: string
+  date: string
+  created_at: string
+}
