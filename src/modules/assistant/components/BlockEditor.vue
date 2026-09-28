@@ -130,7 +130,11 @@
           <button class="block-editor__preset" type="button" @click="setRepeat(ALL_DAYS)">Every day</button>
           <button class="block-editor__preset" type="button" @click="setRepeat([])">Only {{ baseDayName }}</button>
         </div>
-        <p v-if="isSeries" class="block-editor__hint">
+        <p v-if="isDated" class="block-editor__hint">
+          This day keeps its block, and it is added to the weekly template on every checked day, so it repeats
+          from now on. Days where that time is taken are skipped.
+        </p>
+        <p v-else-if="isSeries" class="block-editor__hint">
           Changes apply to every checked day. Unchecking a day removes the block from it; days where the new time
           is taken are skipped.
         </p>
@@ -145,7 +149,7 @@
       <footer class="block-editor__footer">
         <button v-if="block" class="block-editor__delete" type="button" :disabled="busy" @click="emit('delete', applyTo, alsoDays)">
           <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-          {{ alsoDays.length > 0 ? `Delete from ${alsoDays.length + 1} days` : 'Delete block' }}
+          {{ alsoDays.length > 0 && !isDated ? `Delete from ${alsoDays.length + 1} days` : 'Delete block' }}
         </button>
         <span class="block-editor__spacer"></span>
         <button class="block-editor__cancel" type="button" @click="emit('close')">Cancel</button>
@@ -222,6 +226,7 @@ const note = ref(props.block?.note ?? '')
 const applyTo = ref<ApplyTo>('date')
 const repeatDays = ref<DayOfWeek[]>(props.seriesDays.length > 0 ? [...props.seriesDays] : [props.baseDay])
 const isSeries = computed(() => props.block !== null && props.seriesDays.length > 0)
+const isDated = computed(() => props.block !== null && props.block.date !== null)
 
 const targetsTemplate = computed(
   () => props.templateMode || (props.scopeChoice !== null && applyTo.value === 'template'),

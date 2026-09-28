@@ -292,8 +292,8 @@ function openEdit(dayIndex: number, block: ScheduleBlock): void {
     start: block.start_minute,
     end: block.end_minute,
     contextLabel: context.contextLabel,
-    // Blocks already specific to a date only change on that date.
-    scopeChoice: block.date === null ? context.scopeChoice : null,
+    // Date blocks can also be added to the template ("Every <weekday>").
+    scopeChoice: context.scopeChoice,
   }
 }
 
@@ -364,6 +364,19 @@ async function handleSave(fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOf
     const removed = plan.remove.map((b) => b.day_of_week).filter((d): d is DayOfWeek => d !== null)
     if (removed.length > 0) parts.push(`Removed from ${dayList(removed)}.`)
     if (plan.skipped.length > 0) parts.push(`Skipped ${dayList(plan.skipped)}: that time is taken.`)
+  } else if (original && original.date !== null && scope.kind === 'template') {
+    // A block that only lived on this date: keep it here and add it to the
+    // weekly template on its own weekday plus every checked day.
+    const baseDay = isoDayOfWeek(week[state.dayIndex] as Date)
+    busy.value = true
+    const copies = await copyToDays([baseDay, ...alsoDays].sort((a, b) => a - b), fields)
+    busy.value = false
+    if (!copies) {
+      editorError.value = error.value?.message ?? 'Saved this day, but could not add it to the template'
+      return
+    }
+    if (copies.added.length > 0) parts.push(`Added to the weekly template on ${dayList(copies.added)}.`)
+    if (copies.skipped.length > 0) parts.push(`Skipped ${dayList(copies.skipped)}: that time is taken.`)
   } else if (alsoDays.length > 0) {
     busy.value = true
     const copies = await copyToDays(alsoDays, fields)
