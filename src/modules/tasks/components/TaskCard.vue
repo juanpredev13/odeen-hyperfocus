@@ -23,6 +23,7 @@
       <span class="task-card__meta-item" :title="`Impact score: ${task.impact_score}`">
         Impact {{ task.impact_score }}
       </span>
+      <TaskLinkBadges :task-id="task.id" />
     </div>
   </div>
 </template>
@@ -30,6 +31,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import QuadrantBadge from '@/modules/tasks/components/QuadrantBadge.vue'
+import TaskLinkBadges from '@/modules/tasks/components/TaskLinkBadges.vue'
 import type { Task } from '@/modules/tasks/types'
 
 const props = defineProps<{ task: Task }>()
