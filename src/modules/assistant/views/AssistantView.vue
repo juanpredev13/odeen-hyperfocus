@@ -21,6 +21,7 @@
     <IntentionsPlanner class="assistant__planner" />
 
     <div class="assistant__grid">
+      <ScheduleNowCard />
       <TodayCard
         icon="inbox"
         title="Inbox"
@@ -55,6 +56,7 @@
 import { computed, onMounted } from 'vue'
 import AssistantNav from '@/modules/assistant/components/AssistantNav.vue'
 import TodayCard from '@/modules/assistant/components/TodayCard.vue'
+import ScheduleNowCard from '@/modules/assistant/components/ScheduleNowCard.vue'
 import TodayHero from '@/modules/assistant/components/TodayHero.vue'
 import IntentionSequence from '@/modules/assistant/components/IntentionSequence.vue'
 import IntentionsPlanner from '@/modules/assistant/components/IntentionsPlanner.vue'
