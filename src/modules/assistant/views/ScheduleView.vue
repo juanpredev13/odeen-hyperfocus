@@ -107,6 +107,7 @@
       :initial-start="editor.start"
       :initial-end="editor.end"
       :day-blocks="gridDays[editor.dayIndex]?.blocks ?? []"
+      :template-blocks="templateFor(isoDayOfWeek(week[editor.dayIndex] as Date))"
       :context-label="editor.contextLabel"
       :scope-choice="editor.scopeChoice"
       :template-mode="mode === 'template'"
@@ -389,8 +390,39 @@ async function handleSave(fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOf
     if (copies.skipped.length > 0) parts.push(`Skipped ${dayList(copies.skipped)}: that time is taken.`)
   }
 
+  // Edited days of this week don't show the template, so a new weekly block
+  // is also placed on them directly — otherwise it would only appear next week.
+  if (mode.value === 'week' && scope.kind === 'template' && (!original || original.date !== null)) {
+    const baseDay = isoDayOfWeek(week[state.dayIndex] as Date)
+    const days = original ? alsoDays : [baseDay, ...alsoDays]
+    const edited = await addToEditedDays(days, fields)
+    if (edited.added.length > 0) parts.push(`Also placed on this week's edited days: ${dayList(edited.added)}.`)
+    if (edited.skipped.length > 0) parts.push(`Not placed on ${dayList(edited.skipped)} this week: that time is taken.`)
+  }
+
   notice.value = parts.length > 0 ? parts.join(' ') : null
   closeEditor()
+}
+
+async function addToEditedDays(
+  days: readonly DayOfWeek[],
+  fields: BlockFields,
+): Promise<{ added: DayOfWeek[]; skipped: DayOfWeek[] }> {
+  const added: DayOfWeek[] = []
+  const skipped: DayOfWeek[] = []
+  busy.value = true
+  for (const day of [...days].sort((a, b) => a - b)) {
+    const date = week[day - 1] as Date
+    if (!isOverridden(date)) continue
+    if (overlapsAny(blocksOn(date), fields)) {
+      skipped.push(day)
+      continue
+    }
+    if (await createBlock({ kind: 'date', date }, fields)) added.push(day)
+    else skipped.push(day)
+  }
+  busy.value = false
+  return { added, skipped }
 }
 
 async function handleDelete(applyTo: ApplyTo, alsoDays: DayOfWeek[]): Promise<void> {
