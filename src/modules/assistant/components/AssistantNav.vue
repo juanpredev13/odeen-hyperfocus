@@ -22,6 +22,7 @@ interface AssistantNavLink {
 
 const links: AssistantNavLink[] = [
   { name: 'assistant', label: 'Today', icon: 'today' },
+  { name: 'assistant-schedule', label: 'Schedule', icon: 'calendar_view_week' },
   { name: 'assistant-inbox', label: 'Inbox', icon: 'inbox' },
   { name: 'assistant-review', label: 'Weekly review', icon: 'insights' },
   { name: 'assistant-close', label: 'Close the day', icon: 'bedtime' },

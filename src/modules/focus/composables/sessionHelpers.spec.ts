@@ -17,6 +17,7 @@ function session(partial: Partial<FocusSession>): FocusSession {
     id: 's',
     user_id: 'u',
     task_id: null,
+    segment_id: null,
     mode: 'hyperfocus',
     planned_minutes: 25,
     actual_minutes: 25,

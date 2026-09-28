@@ -8,6 +8,8 @@ import {
   remainingSeconds,
   staleSessionEnd,
 } from '@/modules/focus/composables/sessionHelpers'
+import { useSchedule } from '@/modules/assistant/composables/useSchedule'
+import { currentBlock, minuteOfDay } from '@/modules/assistant/composables/scheduleHelpers'
 import type { FocusError, FocusSession, SessionPhase } from '@/modules/focus/types'
 
 // Module-level: QuickCapture reads the running session to tag captures with it.
@@ -18,6 +20,7 @@ export function useActiveSessionId() {
 }
 
 export function useFocusSession(options: { onTimeUp?: () => void } = {}) {
+  const schedule = useSchedule()
   const phase = ref<SessionPhase>('setup')
   const recent = shallowRef<FocusSession[]>([])
   const finished = ref<FocusSession | null>(null)
@@ -84,11 +87,19 @@ export function useFocusSession(options: { onTimeUp?: () => void } = {}) {
     await sessionsService.updateSession(running.id, staleSessionEnd(running, new Date()))
   }
 
+  /** Segment of the schedule block running now, if any (#63). Never blocks a start. */
+  async function currentSegmentId(): Promise<string | null> {
+    if (!schedule.loaded.value) await schedule.load()
+    const now = new Date()
+    return currentBlock(schedule.blocksOn(now), minuteOfDay(now))?.segment_id ?? null
+  }
+
   async function start(taskId: string, minutes: number): Promise<boolean> {
     busy.value = true
     error.value = null
     const result = await sessionsService.startSession({
       task_id: taskId,
+      segment_id: await currentSegmentId(),
       mode: 'hyperfocus',
       planned_minutes: minutes,
     })

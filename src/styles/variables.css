@@ -113,6 +113,25 @@
   --color-danger-bg: #ffdad6;
   --color-danger-border: #f5b5ae;
   --color-danger-text: #93000a;
+  /* Danger text on dark pods/panels, same in both themes. */
+  --color-danger-on-pod: #ffb4ab;
+
+  /* Schedule segments (#63): a solid color for dots/bars and a soft tint
+     for block backgrounds. Keyed by schedule_segments.color_key. */
+  --color-segment-emerald: #00c864;
+  --color-segment-emerald-bg: #d6f9e4;
+  --color-segment-mint: #10b981;
+  --color-segment-mint-bg: #d9f5ea;
+  --color-segment-sage: #6f9a7f;
+  --color-segment-sage-bg: #e4ede7;
+  --color-segment-amber: #d9930d;
+  --color-segment-amber-bg: #fdf1d6;
+  --color-segment-slate: #5a665f;
+  --color-segment-slate-bg: #e4eae4;
+  --color-segment-sky: #2b8fb3;
+  --color-segment-sky-bg: #dcf0f7;
+  --color-segment-rose: #c2566b;
+  --color-segment-rose-bg: #f8e1e6;
 
   /* Task quadrants (#30) — aliases of status tokens. Resolved on the root
      element, so they pick up the [data-theme='dark'] values automatically. */
@@ -172,5 +191,20 @@
      need to lighten for dark backgrounds the way --color-danger-text does. */
   --color-danger-bg: #2c1414;
   --color-danger-border: #6b1f1f;
+  --color-segment-emerald: #00e676;
+  --color-segment-emerald-bg: #0e2a19;
+  --color-segment-mint: #4edea3;
+  --color-segment-mint-bg: #0f2a20;
+  --color-segment-sage: #a8d0b5;
+  --color-segment-sage-bg: #1a2b21;
+  --color-segment-amber: #fbbf24;
+  --color-segment-amber-bg: #2b2110;
+  --color-segment-slate: #8fa89a;
+  --color-segment-slate-bg: #1c2621;
+  --color-segment-sky: #6cc7e8;
+  --color-segment-sky-bg: #0f2530;
+  --color-segment-rose: #f0899d;
+  --color-segment-rose-bg: #2e1419;
+
   --color-danger-text: #ffb4ab;
 }
