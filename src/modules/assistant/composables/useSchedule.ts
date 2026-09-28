@@ -5,11 +5,14 @@ import {
   DEFAULT_SEGMENTS,
   DEFAULT_TEMPLATE,
   blocksForDate,
+  findSiblings,
   isoDayOfWeek,
   planCopies,
+  planSeries,
   templateBlocksFor,
   weekDates,
 } from '@/modules/assistant/composables/scheduleHelpers'
+import type { SeriesPlan } from '@/modules/assistant/composables/scheduleHelpers'
 import type {
   AssistantError,
   CreateSegmentPayload,
@@ -240,6 +243,70 @@ export function useSchedule() {
     return { added: free, skipped: taken }
   }
 
+  /** Weekdays where a template block repeats (its own day included). */
+  function seriesDays(block: ScheduleBlock): DayOfWeek[] {
+    if (block.day_of_week === null) return []
+    const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
+    return [block.day_of_week, ...findSiblings(templateBlocks, block).keys()].sort((a, b) => a - b)
+  }
+
+  /**
+   * Saves a repeated template block across weekdays. `original` is the block
+   * as it was before editing (used to find its siblings); `checkedDays` are
+   * the other weekdays it should now be on. The block's own day is saved by
+   * the caller.
+   */
+  async function applySeries(
+    original: ScheduleBlock,
+    checkedDays: readonly DayOfWeek[],
+    fields: BlockFields,
+  ): Promise<SeriesPlan | null> {
+    error.value = null
+    const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
+    const siblings = findSiblings(templateBlocks, original)
+    const plan = planSeries(checkedDays, siblings, templateFor, fields)
+    const cleaned = clean(fields)
+
+    const [updates, created, removed] = await Promise.all([
+      Promise.all(plan.update.map((b) => scheduleService.updateBlock({ id: b.id, ...cleaned }))),
+      plan.create.length > 0
+        ? scheduleService.createBlocks(plan.create.map((day) => ({ day_of_week: day, date: null, ...cleaned })))
+        : Promise.resolve({ data: [] as ScheduleBlock[], error: null }),
+      scheduleService.deleteBlocks(plan.remove.map((b) => b.id)),
+    ])
+
+    for (const result of updates) if (result.data) replaceBlock(result.data)
+    if (created.data) blocks.value = [...blocks.value, ...created.data]
+    if (!removed.error) {
+      const gone = new Set(plan.remove.map((b) => b.id))
+      blocks.value = blocks.value.filter((b) => !gone.has(b.id))
+    }
+
+    const failed = updates.find((r) => r.error)?.error ?? created.error ?? removed.error
+    if (failed) {
+      error.value = failed
+      return null
+    }
+    return plan
+  }
+
+  /** Deletes a template block and its siblings on the given weekdays. */
+  async function deleteSeries(original: ScheduleBlock, days: readonly DayOfWeek[]): Promise<boolean> {
+    error.value = null
+    const templateBlocks = blocks.value.filter((b) => b.day_of_week !== null)
+    const siblings = findSiblings(templateBlocks, original)
+    const targets = [original, ...days.flatMap((d) => siblings.get(d) ?? [])]
+
+    const result = await scheduleService.deleteBlocks(targets.map((b) => b.id))
+    if (result.error) {
+      error.value = result.error
+      return false
+    }
+    const gone = new Set(targets.map((b) => b.id))
+    blocks.value = blocks.value.filter((b) => !gone.has(b.id))
+    return true
+  }
+
   /**
    * Updates a block. Editing a template block with a `date` scope detaches
    * that day first and edits only its copy, so the template stays intact.
@@ -324,6 +391,9 @@ export function useSchedule() {
     moveSegment,
     createBlock,
     copyToDays,
+    seriesDays,
+    applySeries,
+    deleteSeries,
     updateBlock,
     deleteBlock,
     resetDay,

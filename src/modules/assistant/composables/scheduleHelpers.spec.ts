@@ -14,7 +14,9 @@ import {
   isoDayOfWeek,
   nextBlock,
   overlapsAny,
+  findSiblings,
   planCopies,
+  planSeries,
   plannedMinutesBySegment,
   snapMinutes,
   weekDates,
@@ -244,5 +246,55 @@ describe('planCopies', () => {
     const plan = planCopies([2, 4], blocksOn, { start_minute: 600, end_minute: 780 })
     expect(plan.free).toEqual([2, 4])
     expect(plan.taken).toEqual([])
+  })
+})
+
+describe('findSiblings', () => {
+  const base = block({ id: 'mon', day_of_week: 1, start_minute: 420, end_minute: 480, title: 'Run' })
+  const template = [
+    base,
+    block({ id: 'tue', day_of_week: 2, start_minute: 420, end_minute: 480, title: 'Run' }),
+    block({ id: 'wed', day_of_week: 3, start_minute: 420, end_minute: 480, title: 'Swim' }),
+    block({ id: 'thu', day_of_week: 4, start_minute: 420, end_minute: 495, title: 'Run' }),
+    block({ id: 'fri', day_of_week: 5, start_minute: 420, end_minute: 480, title: 'Run' }),
+    block({ id: 'fri-other-seg', day_of_week: 5, segment_id: 'rest', start_minute: 420, end_minute: 480, title: 'Run' }),
+  ]
+
+  it('matches segment, time range and title on other weekdays', () => {
+    expect([...findSiblings(template, base).entries()].map(([d, b]) => [d, b.id])).toEqual([
+      [2, 'tue'],
+      [5, 'fri'],
+    ])
+  })
+})
+
+describe('planSeries', () => {
+  const tue = block({ id: 'tue', day_of_week: 2, start_minute: 420, end_minute: 480 })
+  const thu = block({ id: 'thu', day_of_week: 4, start_minute: 420, end_minute: 480 })
+  const wedMeeting = block({ id: 'wed-meeting', day_of_week: 3, start_minute: 450, end_minute: 510 })
+  const byDay: Record<number, ScheduleBlock[]> = { 2: [tue], 3: [wedMeeting], 4: [thu] }
+  const blocksOn = (day: number): ScheduleBlock[] => byDay[day] ?? []
+  const siblings = new Map([
+    [2, tue],
+    [4, thu],
+  ] as const)
+
+  it('updates checked siblings, creates on new days, removes unchecked ones', () => {
+    const plan = planSeries([2, 5], siblings, blocksOn, { start_minute: 420, end_minute: 480 })
+    expect(plan.update.map((b) => b.id)).toEqual(['tue'])
+    expect(plan.create).toEqual([5])
+    expect(plan.remove.map((b) => b.id)).toEqual(['thu'])
+    expect(plan.skipped).toEqual([])
+  })
+
+  it('skips a day where the new time overlaps another block', () => {
+    const plan = planSeries([2, 3, 4], siblings, blocksOn, { start_minute: 420, end_minute: 480 })
+    expect(plan.skipped).toEqual([3])
+    expect(plan.update.map((b) => b.id)).toEqual(['tue', 'thu'])
+  })
+
+  it('ignores the sibling itself when checking overlaps for a moved block', () => {
+    const plan = planSeries([2], siblings, blocksOn, { start_minute: 435, end_minute: 495 })
+    expect(plan.update.map((b) => b.id)).toEqual(['tue'])
   })
 })

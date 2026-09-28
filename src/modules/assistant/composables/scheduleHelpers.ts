@@ -150,6 +150,69 @@ export function planCopies(
   return { free, taken }
 }
 
+/**
+ * The same block repeated on other weekdays of the template: same segment,
+ * time range and focus. Keyed by weekday; the block's own day is left out.
+ */
+export function findSiblings(
+  templateBlocks: readonly ScheduleBlock[],
+  block: Pick<ScheduleBlock, 'id' | 'segment_id' | 'start_minute' | 'end_minute' | 'title' | 'day_of_week'>,
+): Map<DayOfWeek, ScheduleBlock> {
+  const siblings = new Map<DayOfWeek, ScheduleBlock>()
+  for (const b of templateBlocks) {
+    if (b.id === block.id || b.day_of_week === null || b.day_of_week === block.day_of_week) continue
+    if (
+      b.segment_id === block.segment_id &&
+      b.start_minute === block.start_minute &&
+      b.end_minute === block.end_minute &&
+      (b.title ?? '') === (block.title ?? '')
+    ) {
+      siblings.set(b.day_of_week, b)
+    }
+  }
+  return siblings
+}
+
+export interface SeriesPlan {
+  /** Existing siblings to update with the new fields. */
+  update: ScheduleBlock[]
+  /** Checked days without the block yet. */
+  create: DayOfWeek[]
+  /** Unchecked days that had the block. */
+  remove: ScheduleBlock[]
+  /** Checked days where the new time is taken by another block. */
+  skipped: DayOfWeek[]
+}
+
+/**
+ * What to do on the other weekdays when a repeated template block is saved:
+ * update the checked siblings, create it on newly checked days, remove it
+ * from unchecked days. Overlaps skip a day instead of failing the save.
+ */
+export function planSeries(
+  checkedDays: readonly DayOfWeek[],
+  siblings: ReadonlyMap<DayOfWeek, ScheduleBlock>,
+  blocksOn: (day: DayOfWeek) => readonly Pick<ScheduleBlock, 'id' | 'start_minute' | 'end_minute'>[],
+  range: { start_minute: number; end_minute: number },
+): SeriesPlan {
+  const plan: SeriesPlan = { update: [], create: [], remove: [], skipped: [] }
+  const checked = new Set(checkedDays)
+
+  for (const day of checkedDays) {
+    const sibling = siblings.get(day)
+    if (overlapsAny(blocksOn(day), range, sibling?.id ?? null)) {
+      plan.skipped.push(day)
+      continue
+    }
+    if (sibling) plan.update.push(sibling)
+    else plan.create.push(day)
+  }
+  for (const [day, sibling] of siblings) {
+    if (!checked.has(day)) plan.remove.push(sibling)
+  }
+  return plan
+}
+
 /** Whether a range sits inside the planned day (06:00–22:00). */
 export function isWithinPlannedDay(range: { start_minute: number; end_minute: number }): boolean {
   return range.start_minute >= DAY_START_MINUTE && range.end_minute <= DAY_END_MINUTE

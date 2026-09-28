@@ -130,7 +130,11 @@
           <button class="block-editor__preset" type="button" @click="setRepeat(ALL_DAYS)">Every day</button>
           <button class="block-editor__preset" type="button" @click="setRepeat([])">Only {{ baseDayName }}</button>
         </div>
-        <p v-if="alsoDays.length > 0" class="block-editor__hint">
+        <p v-if="isSeries" class="block-editor__hint">
+          Changes apply to every checked day. Unchecking a day removes the block from it; days where the new time
+          is taken are skipped.
+        </p>
+        <p v-else-if="alsoDays.length > 0" class="block-editor__hint">
           Also added to {{ alsoDays.length }} {{ alsoDays.length === 1 ? 'day' : 'days' }}. Days where it would overlap
           another block are skipped.
         </p>
@@ -139,9 +143,9 @@
       <p v-if="error" class="block-editor__error" role="alert">{{ error }}</p>
 
       <footer class="block-editor__footer">
-        <button v-if="block" class="block-editor__delete" type="button" :disabled="busy" @click="emit('delete', applyTo)">
+        <button v-if="block" class="block-editor__delete" type="button" :disabled="busy" @click="emit('delete', applyTo, alsoDays)">
           <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-          Delete block
+          {{ alsoDays.length > 0 ? `Delete from ${alsoDays.length + 1} days` : 'Delete block' }}
         </button>
         <span class="block-editor__spacer"></span>
         <button class="block-editor__cancel" type="button" @click="emit('close')">Cancel</button>
@@ -195,6 +199,8 @@ const props = defineProps<{
   templateMode: boolean
   /** Weekday of the day being edited. */
   baseDay: DayOfWeek
+  /** Weekdays the block already repeats on (base day included); [] for a new block. */
+  seriesDays: DayOfWeek[]
   busy: boolean
   error: string | null
 }>()
@@ -202,7 +208,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   /** `alsoDays`: other weekdays to copy the block to (template only). */
   save: [fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOfWeek[]]
-  delete: [applyTo: ApplyTo]
+  /** `alsoDays`: other weekdays to delete the repeated block from. */
+  delete: [applyTo: ApplyTo, alsoDays: DayOfWeek[]]
   close: []
 }>()
 
@@ -213,7 +220,8 @@ const end = ref(Math.max(Math.min(props.initialEnd, DAY_END_MINUTE), start.value
 const title = ref(props.block?.title ?? '')
 const note = ref(props.block?.note ?? '')
 const applyTo = ref<ApplyTo>('date')
-const repeatDays = ref<DayOfWeek[]>([props.baseDay])
+const repeatDays = ref<DayOfWeek[]>(props.seriesDays.length > 0 ? [...props.seriesDays] : [props.baseDay])
+const isSeries = computed(() => props.block !== null && props.seriesDays.length > 0)
 
 const targetsTemplate = computed(
   () => props.templateMode || (props.scopeChoice !== null && applyTo.value === 'template'),

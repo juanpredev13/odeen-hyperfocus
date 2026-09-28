@@ -111,6 +111,7 @@
       :scope-choice="editor.scopeChoice"
       :template-mode="mode === 'template'"
       :base-day="isoDayOfWeek(week[editor.dayIndex] as Date)"
+      :series-days="editor.block ? seriesDays(editor.block) : []"
       :busy="busy"
       :error="editorError"
       @save="handleSave"
@@ -168,6 +169,9 @@ const {
   moveSegment,
   createBlock,
   copyToDays,
+  seriesDays,
+  applySeries,
+  deleteSeries,
   updateBlock,
   deleteBlock,
   resetDay,
@@ -333,17 +337,34 @@ function dayList(days: readonly DayOfWeek[]): string {
 async function handleSave(fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOfWeek[]): Promise<void> {
   const state = editor.value
   if (!state) return
+  const original = state.block
   const scope = scopeFor(state.dayIndex, applyTo)
-  const ok = await run(() =>
-    state.block ? updateBlock(state.block, scope, fields) : createBlock(scope, fields),
-  )
+  const ok = await run(() => (original ? updateBlock(original, scope, fields) : createBlock(scope, fields)))
   if (!ok) {
     editorError.value = error.value?.message ?? 'Could not save the block'
     return
   }
 
   notice.value = null
-  if (alsoDays.length > 0) {
+  const parts: string[] = []
+
+  if (original && scope.kind === 'template' && original.day_of_week !== null) {
+    // Existing repeated block: keep every checked weekday in sync.
+    busy.value = true
+    const plan = await applySeries(original, alsoDays, fields)
+    busy.value = false
+    if (!plan) {
+      editorError.value = error.value?.message ?? 'Saved this day, but could not update the other days'
+      return
+    }
+    const changed = [...plan.update.map((b) => b.day_of_week), ...plan.create].filter(
+      (d): d is DayOfWeek => d !== null,
+    )
+    if (changed.length > 0) parts.push(`Also saved on ${dayList(changed)}.`)
+    const removed = plan.remove.map((b) => b.day_of_week).filter((d): d is DayOfWeek => d !== null)
+    if (removed.length > 0) parts.push(`Removed from ${dayList(removed)}.`)
+    if (plan.skipped.length > 0) parts.push(`Skipped ${dayList(plan.skipped)}: that time is taken.`)
+  } else if (alsoDays.length > 0) {
     busy.value = true
     const copies = await copyToDays(alsoDays, fields)
     busy.value = false
@@ -351,21 +372,27 @@ async function handleSave(fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOf
       editorError.value = error.value?.message ?? 'Saved, but could not copy to the other days'
       return
     }
-    const parts: string[] = []
     if (copies.added.length > 0) parts.push(`Also added to ${dayList(copies.added)}.`)
     if (copies.skipped.length > 0) parts.push(`Skipped ${dayList(copies.skipped)}: that time is taken.`)
-    notice.value = parts.join(' ')
   }
+
+  notice.value = parts.length > 0 ? parts.join(' ') : null
   closeEditor()
 }
 
-async function handleDelete(applyTo: ApplyTo): Promise<void> {
+async function handleDelete(applyTo: ApplyTo, alsoDays: DayOfWeek[]): Promise<void> {
   const state = editor.value
   if (!state?.block) return
   const block = state.block
-  const ok = await run(() => deleteBlock(block, scopeFor(state.dayIndex, applyTo)))
-  if (ok) closeEditor()
-  else editorError.value = error.value?.message ?? 'Could not delete the block'
+  const scope = scopeFor(state.dayIndex, applyTo)
+  const series = scope.kind === 'template' && block.day_of_week !== null && alsoDays.length > 0
+  const ok = await run(() => (series ? deleteSeries(block, alsoDays) : deleteBlock(block, scope)))
+  if (!ok) {
+    editorError.value = error.value?.message ?? 'Could not delete the block'
+    return
+  }
+  notice.value = series ? `Deleted from ${dayList([isoDayOfWeek(week[state.dayIndex] as Date), ...alsoDays].sort((a, b) => a - b))}.` : null
+  closeEditor()
 }
 
 async function handleDragUpdate(change: GridRange & { block: ScheduleBlock }): Promise<void> {
