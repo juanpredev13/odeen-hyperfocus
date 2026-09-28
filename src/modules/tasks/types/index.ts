@@ -46,3 +46,28 @@ export interface TasksResult<T> {
   data: T | null
   error: TasksError | null
 }
+
+export type TaskLinkKind = 'github_issue' | 'obsidian_note'
+
+/** An external reference attached to a task (#75). */
+export interface TaskLink {
+  id: string
+  task_id: string
+  kind: TaskLinkKind
+  url: string
+  label: string
+  created_at: string
+}
+
+export type CreateTaskLinkPayload = Pick<TaskLink, 'task_id' | 'kind' | 'url' | 'label'>
+
+/** Result of parsing what the user pasted into the link input. */
+export type ParsedTaskLink = Pick<TaskLink, 'kind' | 'url' | 'label'>
+
+export type GithubIssueState = 'open' | 'closed'
+
+/** Live issue details from the public GitHub API. */
+export interface GithubIssueInfo {
+  title: string
+  state: GithubIssueState
+}

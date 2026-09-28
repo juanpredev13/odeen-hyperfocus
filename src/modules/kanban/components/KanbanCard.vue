@@ -24,6 +24,7 @@
       <p v-if="task.description" class="kcard__desc">{{ task.description }}</p>
       <div class="kcard__quadrant">
         <QuadrantBadge :task="task" :inverted="featured" />
+        <TaskLinkBadges :task-id="task.id" :on-pod="featured" />
       </div>
       <div class="kcard__actions">
         <button
@@ -59,6 +60,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import QuadrantBadge from '@/modules/tasks/components/QuadrantBadge.vue'
+import TaskLinkBadges from '@/modules/tasks/components/TaskLinkBadges.vue'
 import type { Task } from '@/modules/tasks/types'
 
 const props = defineProps<{
@@ -231,6 +233,9 @@ function onDragEnd(): void {
 /* ── Quadrant ── */
 .kcard__quadrant {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
   margin-top: var(--space-sm);
 }
 

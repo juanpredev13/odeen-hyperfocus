@@ -34,6 +34,11 @@
   --color-status-neutral-dot: #7a8a80;
   --color-status-neutral-text: #171d1a;
 
+  /* Colors — Brand marks (task links, #75) */
+  --color-brand-github: #181717;
+  --color-brand-obsidian: #7c3aed;
+  --color-brand-obsidian-on-pod: #a78bfa;
+
   /* Colors — Sage gray scale */
   --color-gray-100: #eff5ef;
   --color-gray-200: #e4eae4;
@@ -169,6 +174,10 @@
   --color-status-neutral: #121c16;
   --color-status-neutral-dot: #7a8a80;
   --color-status-neutral-text: #dee4de;
+
+  --color-brand-github: #f0f6fc;
+  --color-brand-obsidian: #a78bfa;
+  --color-brand-obsidian-on-pod: #a78bfa;
 
   --color-gray-100: #16221b;
   --color-gray-200: #1f2e25;
