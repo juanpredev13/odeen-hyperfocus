@@ -15,6 +15,7 @@ import {
   nextBlock,
   overlapsAny,
   findSiblings,
+  firstOverlap,
   planCopies,
   planSeries,
   plannedMinutesBySegment,
@@ -296,5 +297,22 @@ describe('planSeries', () => {
   it('ignores the sibling itself when checking overlaps for a moved block', () => {
     const plan = planSeries([2], siblings, blocksOn, { start_minute: 435, end_minute: 495 })
     expect(plan.update.map((b) => b.id)).toEqual(['tue'])
+  })
+})
+
+describe('firstOverlap', () => {
+  const day = [
+    block({ id: 'a', start_minute: 540, end_minute: 720 }),
+    block({ id: 'b', start_minute: 900, end_minute: 1020 }),
+  ]
+
+  it('returns the block the range runs into', () => {
+    expect(firstOverlap(day, { start_minute: 700, end_minute: 960 })?.id).toBe('a')
+    expect(firstOverlap(day, { start_minute: 960, end_minute: 1080 })?.id).toBe('b')
+  })
+
+  it('returns null for free time, touching edges or the ignored block', () => {
+    expect(firstOverlap(day, { start_minute: 720, end_minute: 900 })).toBeNull()
+    expect(firstOverlap(day, { start_minute: 600, end_minute: 660 }, 'a')).toBeNull()
   })
 })

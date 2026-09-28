@@ -218,6 +218,19 @@ export function isWithinPlannedDay(range: { start_minute: number; end_minute: nu
   return range.start_minute >= DAY_START_MINUTE && range.end_minute <= DAY_END_MINUTE
 }
 
+/** The first block of the day that a range would overlap, if any. */
+export function firstOverlap<T extends Pick<ScheduleBlock, 'id' | 'start_minute' | 'end_minute'>>(
+  dayBlocks: readonly T[],
+  range: { start_minute: number; end_minute: number },
+  ignoreId: string | null = null,
+): T | null {
+  return (
+    dayBlocks.find(
+      (b) => b.id !== ignoreId && b.start_minute < range.end_minute && range.start_minute < b.end_minute,
+    ) ?? null
+  )
+}
+
 /** A valid block range: on mini-slots, inside the day, at least one slot long. */
 export function isValidRange(range: { start_minute: number; end_minute: number }): boolean {
   return (

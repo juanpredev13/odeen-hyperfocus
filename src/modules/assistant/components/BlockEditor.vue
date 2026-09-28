@@ -67,10 +67,10 @@
             </div>
           </div>
         </div>
-        <p class="block-editor__summary" :class="{ 'block-editor__summary--error': overlaps }">
+        <p class="block-editor__summary" :class="{ 'block-editor__summary--error': conflict !== null }">
           <span class="block-editor__dot" aria-hidden="true"></span>
           {{ formatDuration(end - start) }} · {{ (end - start) / SLOT_MINUTES }} mini-slots
-          <template v-if="overlaps"> · overlaps another block</template>
+          <template v-if="conflict"> · overlaps {{ conflictLabel }}</template>
         </p>
       </div>
 
@@ -130,7 +130,11 @@
           <button class="block-editor__preset" type="button" @click="setRepeat(ALL_DAYS)">Every day</button>
           <button class="block-editor__preset" type="button" @click="setRepeat([])">Only {{ baseDayName }}</button>
         </div>
-        <p v-if="isSeries" class="block-editor__hint">
+        <p v-if="isDated" class="block-editor__hint">
+          This day keeps its block, and it is added to the weekly template on every checked day, so it repeats
+          from now on. Days where that time is taken are skipped.
+        </p>
+        <p v-else-if="isSeries" class="block-editor__hint">
           Changes apply to every checked day. Unchecking a day removes the block from it; days where the new time
           is taken are skipped.
         </p>
@@ -145,7 +149,7 @@
       <footer class="block-editor__footer">
         <button v-if="block" class="block-editor__delete" type="button" :disabled="busy" @click="emit('delete', applyTo, alsoDays)">
           <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-          {{ alsoDays.length > 0 ? `Delete from ${alsoDays.length + 1} days` : 'Delete block' }}
+          {{ alsoDays.length > 0 && !isDated ? `Delete from ${alsoDays.length + 1} days` : 'Delete block' }}
         </button>
         <span class="block-editor__spacer"></span>
         <button class="block-editor__cancel" type="button" @click="emit('close')">Cancel</button>
@@ -166,8 +170,8 @@ import {
   DAY_START_MINUTE,
   SLOT_MINUTES,
   WEEKDAY_NAMES,
+  firstOverlap,
   formatMinutes,
-  overlapsAny,
 } from '@/modules/assistant/composables/scheduleHelpers'
 import type { BlockFields } from '@/modules/assistant/composables/useSchedule'
 import type { DayOfWeek, ScheduleBlock, ScheduleSegment } from '@/modules/assistant/types'
@@ -192,6 +196,8 @@ const props = defineProps<{
   initialEnd: number
   /** Other blocks of the same day, for the overlap check. */
   dayBlocks: ScheduleBlock[]
+  /** The weekday's template blocks, checked when the change goes to the template. */
+  templateBlocks: ScheduleBlock[]
   contextLabel: string
   /** Offered when a template block is edited from a real week. */
   scopeChoice: { dateLabel: string; weekday: string } | null
@@ -222,6 +228,7 @@ const note = ref(props.block?.note ?? '')
 const applyTo = ref<ApplyTo>('date')
 const repeatDays = ref<DayOfWeek[]>(props.seriesDays.length > 0 ? [...props.seriesDays] : [props.baseDay])
 const isSeries = computed(() => props.block !== null && props.seriesDays.length > 0)
+const isDated = computed(() => props.block !== null && props.block.date !== null)
 
 const targetsTemplate = computed(
   () => props.templateMode || (props.scopeChoice !== null && applyTo.value === 'template'),
@@ -235,9 +242,23 @@ function setRepeat(days: readonly DayOfWeek[]): void {
   repeatDays.value = [...new Set<DayOfWeek>([props.baseDay, ...days])]
 }
 
-const overlaps = computed(() =>
-  overlapsAny(props.dayBlocks, { start_minute: start.value, end_minute: end.value }, props.block?.id ?? null),
+// Check the blocks of wherever this block is saved: the weekly template, or
+// the date itself. A date block keeps living on its date even when it is
+// also added to the template (template copies skip taken days).
+const checkedBlocks = computed(() =>
+  targetsTemplate.value && props.block?.date == null ? props.templateBlocks : props.dayBlocks,
 )
+const conflict = computed(() =>
+  firstOverlap(checkedBlocks.value, { start_minute: start.value, end_minute: end.value }, props.block?.id ?? null),
+)
+const overlaps = computed(() => conflict.value !== null)
+const conflictLabel = computed(() => {
+  const c = conflict.value
+  if (!c) return ''
+  const name = c.title ?? props.segments.find((s) => s.id === c.segment_id)?.name ?? 'another block'
+  const where = targetsTemplate.value && props.block?.date == null ? ' in the weekly template' : ''
+  return `${name} (${formatMinutes(c.start_minute)}–${formatMinutes(c.end_minute)})${where}`
+})
 
 function canStep(edge: Edge, delta: number): boolean {
   if (edge === 'start') {
