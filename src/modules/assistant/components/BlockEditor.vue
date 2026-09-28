@@ -40,7 +40,7 @@
       </fieldset>
 
       <div class="block-editor__field">
-        <span class="block-editor__label">Time (15-minute steps)</span>
+        <span class="block-editor__label">Time (15-minute steps, 06:00–22:00)</span>
         <div class="block-editor__times">
           <div v-for="edge in EDGES" :key="edge.key" class="block-editor__time">
             <span class="block-editor__time-label">{{ edge.label }}</span>
@@ -123,7 +123,8 @@
 import { computed, ref } from 'vue'
 import { formatDuration } from '@/modules/assistant/composables/closeDayHelpers'
 import {
-  DAY_MINUTES,
+  DAY_END_MINUTE,
+  DAY_START_MINUTE,
   SLOT_MINUTES,
   formatMinutes,
   overlapsAny,
@@ -161,8 +162,9 @@ const emit = defineEmits<{
 }>()
 
 const segmentId = ref<string>(props.block?.segment_id ?? props.segments[0]?.id ?? '')
-const start = ref(props.initialStart)
-const end = ref(props.initialEnd)
+// Blocks created before the 06:00–22:00 day existed are pulled inside it.
+const start = ref(Math.min(Math.max(props.initialStart, DAY_START_MINUTE), DAY_END_MINUTE - SLOT_MINUTES))
+const end = ref(Math.max(Math.min(props.initialEnd, DAY_END_MINUTE), start.value + SLOT_MINUTES))
 const title = ref(props.block?.title ?? '')
 const note = ref(props.block?.note ?? '')
 const applyTo = ref<ApplyTo>('date')
@@ -174,10 +176,10 @@ const overlaps = computed(() =>
 function canStep(edge: Edge, delta: number): boolean {
   if (edge === 'start') {
     const next = start.value + delta
-    return next >= 0 && next < end.value
+    return next >= DAY_START_MINUTE && next < end.value
   }
   const next = end.value + delta
-  return next <= DAY_MINUTES && next > start.value
+  return next <= DAY_END_MINUTE && next > start.value
 }
 
 function step(edge: Edge, delta: number): void {

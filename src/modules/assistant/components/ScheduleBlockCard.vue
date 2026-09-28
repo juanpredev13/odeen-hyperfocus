@@ -61,11 +61,13 @@ const props = withDefaults(
     block: Pick<ScheduleBlock, 'start_minute' | 'end_minute' | 'title' | 'note'>
     segment: ScheduleSegment | undefined
     pxPerMinute: number
+    /** Minute shown at the top of the column (the grid's first hour). */
+    originMinute?: number
     ghost?: boolean
     invalid?: boolean
     current?: boolean
   }>(),
-  { ghost: false, invalid: false, current: false },
+  { originMinute: 0, ghost: false, invalid: false, current: false },
 )
 
 const emit = defineEmits<{
@@ -80,7 +82,7 @@ const shortRange = computed(() => `${formatMinutes(props.block.start_minute)}–
 const duration = computed(() => formatDuration(minutes.value))
 
 // Geometry and color are data-driven, so they are bound as CSS variables.
-const top = computed(() => `${props.block.start_minute * props.pxPerMinute}px`)
+const top = computed(() => `${(props.block.start_minute - props.originMinute) * props.pxPerMinute}px`)
 const height = computed(() => `${minutes.value * props.pxPerMinute}px`)
 const color = computed(() => `var(--color-segment-${props.segment?.color_key ?? 'slate'})`)
 const tint = computed(() => `var(--color-segment-${props.segment?.color_key ?? 'slate'}-bg)`)
