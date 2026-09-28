@@ -153,16 +153,19 @@ export interface ScheduleBlock {
   end_minute: number
   title: string | null
   note: string | null
+  /** Shared by blocks created together with "Repeat on"; null = standalone. */
+  series_id: string | null
   created_at: string
 }
 
 export type BlockDay = { day_of_week: DayOfWeek; date: null } | { day_of_week: null; date: string }
 
 export type CreateBlockPayload = BlockDay &
-  Pick<ScheduleBlock, 'segment_id' | 'start_minute' | 'end_minute' | 'title' | 'note'>
+  Pick<ScheduleBlock, 'segment_id' | 'start_minute' | 'end_minute' | 'title' | 'note'> &
+  Partial<Pick<ScheduleBlock, 'series_id'>>
 
 export type UpdateBlockPayload = Partial<
-  Pick<ScheduleBlock, 'segment_id' | 'start_minute' | 'end_minute' | 'title' | 'note'>
+  Pick<ScheduleBlock, 'segment_id' | 'start_minute' | 'end_minute' | 'title' | 'note' | 'series_id'>
 > & { id: string }
 
 export interface DayOverride {

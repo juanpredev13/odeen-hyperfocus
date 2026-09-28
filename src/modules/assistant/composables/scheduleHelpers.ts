@@ -150,33 +150,23 @@ export function planCopies(
   return { free, taken }
 }
 
-/** Two blocks count as "the same block" when segment, time range and focus match. */
-export function isSameBlock(
-  a: Pick<ScheduleBlock, 'segment_id' | 'start_minute' | 'end_minute' | 'title'>,
-  b: Pick<ScheduleBlock, 'segment_id' | 'start_minute' | 'end_minute' | 'title'>,
-): boolean {
-  return (
-    a.segment_id === b.segment_id &&
-    a.start_minute === b.start_minute &&
-    a.end_minute === b.end_minute &&
-    (a.title ?? '') === (b.title ?? '')
-  )
+/** The template blocks of a series, keyed by weekday. */
+export function seriesTemplateByDay(
+  blocks: readonly ScheduleBlock[],
+  seriesId: string | null,
+): Map<DayOfWeek, ScheduleBlock> {
+  const byDay = new Map<DayOfWeek, ScheduleBlock>()
+  if (seriesId === null) return byDay
+  for (const b of blocks) {
+    if (b.series_id === seriesId && b.day_of_week !== null) byDay.set(b.day_of_week, b)
+  }
+  return byDay
 }
 
-/**
- * The same block repeated on other weekdays of the template: same segment,
- * time range and focus. Keyed by weekday; the block's own day is left out.
- */
-export function findSiblings(
-  templateBlocks: readonly ScheduleBlock[],
-  block: Pick<ScheduleBlock, 'id' | 'segment_id' | 'start_minute' | 'end_minute' | 'title' | 'day_of_week'>,
-): Map<DayOfWeek, ScheduleBlock> {
-  const siblings = new Map<DayOfWeek, ScheduleBlock>()
-  for (const b of templateBlocks) {
-    if (b.id === block.id || b.day_of_week === null || b.day_of_week === block.day_of_week) continue
-    if (isSameBlock(b, block)) siblings.set(b.day_of_week, b)
-  }
-  return siblings
+/** The date copies of a series (edited days that carry it). */
+export function seriesDateCopies(blocks: readonly ScheduleBlock[], seriesId: string | null): ScheduleBlock[] {
+  if (seriesId === null) return []
+  return blocks.filter((b) => b.series_id === seriesId && b.date !== null)
 }
 
 export interface SeriesPlan {

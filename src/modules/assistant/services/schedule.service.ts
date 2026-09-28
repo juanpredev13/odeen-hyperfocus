@@ -179,6 +179,15 @@ export async function deleteBlocks(ids: readonly string[]): Promise<AssistantRes
   return { data: null, error: null }
 }
 
+/** Deletes every block of a series, in the template and on any date. */
+export async function deleteSeries(seriesId: string): Promise<AssistantResult<null>> {
+  const { error } = await supabase.from('schedule_blocks').delete().eq('series_id', seriesId)
+
+  if (error) return { data: null, error: { message: error.message } }
+
+  return { data: null, error: null }
+}
+
 // ── Day overrides ──
 
 export async function fetchOverrides(
@@ -226,6 +235,7 @@ export async function overrideDay(
         end_minute: b.end_minute,
         title: b.title,
         note: b.note,
+        series_id: b.series_id,
       })),
     )
     .select()

@@ -77,10 +77,10 @@
           class="block-editor__replace"
           type="button"
           :disabled="busy"
-          @click="emit('replace', { start_minute: start, end_minute: end }, applyTo, alsoDays)"
+          @click="emit('replace', { start_minute: start, end_minute: end }, applyTo, checkedDays)"
         >
           <span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
-          Replace {{ conflict.title ?? 'that block' }}{{ alsoDays.length > 0 && targetsTemplate && !isDated ? ' on every checked day' : '' }}
+          Replace {{ conflict.title ?? 'that block' }}{{ alsoDays.length > 0 && targetsTemplate ? ' on every checked day' : '' }}
         </button>
       </div>
 
@@ -94,7 +94,21 @@
         <textarea v-model="note" class="block-editor__input block-editor__input--area" rows="2" maxlength="1000"></textarea>
       </label>
 
-      <fieldset v-if="scopeChoice" class="block-editor__field">
+      <fieldset v-if="isSeries" class="block-editor__field">
+        <legend class="block-editor__label">Applies to</legend>
+        <div class="block-editor__scope">
+          <label class="block-editor__scope-option" :class="{ 'block-editor__scope-option--active': applyTo === 'series' }">
+            <input v-model="applyTo" class="block-editor__radio" type="radio" value="series" />
+            All days in this routine ({{ seriesDays.length }})
+          </label>
+          <label class="block-editor__scope-option" :class="{ 'block-editor__scope-option--active': applyTo === 'one' }">
+            <input v-model="applyTo" class="block-editor__radio" type="radio" value="one" />
+            Only this day{{ scopeChoice ? ` (${scopeChoice.dateLabel})` : ` (${baseDayName})` }}
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset v-else-if="scopeChoice" class="block-editor__field">
         <legend class="block-editor__label">Applies to</legend>
         <div class="block-editor__scope">
           <label class="block-editor__scope-option" :class="{ 'block-editor__scope-option--active': applyTo === 'date' }">
@@ -140,24 +154,23 @@
           <button class="block-editor__preset" type="button" @click="setRepeat(ALL_DAYS)">Every day</button>
           <button class="block-editor__preset" type="button" @click="setRepeat([])">Only {{ baseDayName }}</button>
         </div>
-        <p v-if="isDated" class="block-editor__hint">
-          Save keeps this day's block and adds it to the weekly template on every checked day. Delete removes it
-          here and the matching block from the template on the checked days.
+        <p v-if="isSeries" class="block-editor__hint">
+          Changes apply to every day of this routine. Check a day to add it, uncheck one to take the block off that
+          day; days where the new time is taken are skipped.
         </p>
-        <p v-else-if="isSeries" class="block-editor__hint">
-          Changes apply to every checked day. Unchecking a day removes the block from it; days where the new time
-          is taken are skipped.
+        <p v-else-if="isDated" class="block-editor__hint">
+          This day keeps its block, and it becomes a weekly routine on every checked day.
         </p>
         <p v-else-if="alsoDays.length > 0" class="block-editor__hint">
-          Also added to {{ alsoDays.length }} {{ alsoDays.length === 1 ? 'day' : 'days' }}. Days where it would overlap
-          another block are skipped.
+          Saved as a routine on {{ alsoDays.length + 1 }} days — editing any of them later edits all. Days where it
+          would overlap another block are skipped.
         </p>
       </fieldset>
 
       <p v-if="error" class="block-editor__error" role="alert">{{ error }}</p>
 
       <footer class="block-editor__footer">
-        <button v-if="block" class="block-editor__delete" type="button" :disabled="busy" @click="emit('delete', applyTo, alsoDays)">
+        <button v-if="block" class="block-editor__delete" type="button" :disabled="busy" @click="emit('delete', applyTo)">
           <span class="material-symbols-outlined" aria-hidden="true">delete</span>
           {{ deleteLabel }}
         </button>
@@ -183,11 +196,10 @@ import {
   firstOverlap,
   formatMinutes,
 } from '@/modules/assistant/composables/scheduleHelpers'
-import type { BlockFields } from '@/modules/assistant/composables/useSchedule'
+import type { ApplyTo, BlockFields } from '@/modules/assistant/composables/useSchedule'
 import type { DayOfWeek, ScheduleBlock, ScheduleSegment } from '@/modules/assistant/types'
 
 type Edge = 'start' | 'end'
-export type ApplyTo = 'date' | 'template'
 
 const WEEKDAYS: readonly DayOfWeek[] = [1, 2, 3, 4, 5]
 const ALL_DAYS: readonly DayOfWeek[] = [1, 2, 3, 4, 5, 6, 7]
@@ -215,19 +227,20 @@ const props = defineProps<{
   templateMode: boolean
   /** Weekday of the day being edited. */
   baseDay: DayOfWeek
-  /** Weekdays the block already repeats on (base day included); [] for a new block. */
+  /** Weekdays of the block's series (base day included); [] when standalone. */
   seriesDays: DayOfWeek[]
+  /** The block and the other members of its series: never an overlap with itself. */
+  ignoreIds: string[]
   busy: boolean
   error: string | null
 }>()
 
 const emit = defineEmits<{
-  /** `alsoDays`: other weekdays to copy the block to (template only). */
-  save: [fields: BlockFields, applyTo: ApplyTo, alsoDays: DayOfWeek[]]
-  /** `alsoDays`: other weekdays to delete the repeated block from. */
-  delete: [applyTo: ApplyTo, alsoDays: DayOfWeek[]]
+  /** `days`: the checked weekdays, the edited day's included. */
+  save: [fields: BlockFields, applyTo: ApplyTo, days: DayOfWeek[]]
+  delete: [applyTo: ApplyTo]
   /** Delete whatever this range overlaps (on the checked days too), so it can be saved in its place. */
-  replace: [range: { start_minute: number; end_minute: number }, applyTo: ApplyTo, alsoDays: DayOfWeek[]]
+  replace: [range: { start_minute: number; end_minute: number }, applyTo: ApplyTo, days: DayOfWeek[]]
   close: []
 }>()
 
@@ -237,23 +250,28 @@ const start = ref(Math.min(Math.max(props.initialStart, DAY_START_MINUTE), DAY_E
 const end = ref(Math.max(Math.min(props.initialEnd, DAY_END_MINUTE), start.value + SLOT_MINUTES))
 const title = ref(props.block?.title ?? '')
 const note = ref(props.block?.note ?? '')
-const applyTo = ref<ApplyTo>('date')
-const repeatDays = ref<DayOfWeek[]>(props.seriesDays.length > 0 ? [...props.seriesDays] : [props.baseDay])
 const isSeries = computed(() => props.block !== null && props.seriesDays.length > 0)
 const isDated = computed(() => props.block !== null && props.block.date !== null)
+// A block in a series edits the whole series unless "Only this day" is picked.
+const applyTo = ref<ApplyTo>(isSeries.value ? 'series' : props.templateMode ? 'template' : 'date')
+const repeatDays = ref<DayOfWeek[]>(isSeries.value ? [...props.seriesDays] : [props.baseDay])
 const deleteLabel = computed(() => {
-  if (isDated.value && targetsTemplate.value) return 'Delete here and from template'
-  if (alsoDays.value.length > 0) return `Delete from ${alsoDays.value.length + 1} days`
+  if (isSeries.value && applyTo.value === 'series') return `Delete routine (${props.seriesDays.length} days)`
+  if (isSeries.value) return 'Delete this day only'
   return 'Delete block'
 })
 
 const targetsTemplate = computed(
-  () => props.templateMode || (props.scopeChoice !== null && applyTo.value === 'template'),
+  () =>
+    applyTo.value === 'series' ||
+    applyTo.value === 'template' ||
+    (props.templateMode && applyTo.value !== 'one'),
 )
 const baseDayName = computed(() => WEEKDAY_NAMES[props.baseDay])
 const alsoDays = computed(() =>
   targetsTemplate.value ? repeatDays.value.filter((d) => d !== props.baseDay).sort((a, b) => a - b) : [],
 )
+const checkedDays = computed<DayOfWeek[]>(() => [props.baseDay, ...alsoDays.value])
 
 function setRepeat(days: readonly DayOfWeek[]): void {
   repeatDays.value = [...new Set<DayOfWeek>([props.baseDay, ...days])]
@@ -265,8 +283,12 @@ function setRepeat(days: readonly DayOfWeek[]): void {
 const checkedBlocks = computed(() =>
   targetsTemplate.value && props.block?.date == null ? props.templateBlocks : props.dayBlocks,
 )
+const ignored = computed(() => new Set(props.ignoreIds))
 const conflict = computed(() =>
-  firstOverlap(checkedBlocks.value, { start_minute: start.value, end_minute: end.value }, props.block?.id ?? null),
+  firstOverlap(
+    checkedBlocks.value.filter((b) => !ignored.value.has(b.id)),
+    { start_minute: start.value, end_minute: end.value },
+  ),
 )
 const overlaps = computed(() => conflict.value !== null)
 const conflictLabel = computed(() => {
@@ -304,7 +326,7 @@ function save(): void {
       note: note.value,
     },
     applyTo.value,
-    alsoDays.value,
+    checkedDays.value,
   )
 }
 </script>
