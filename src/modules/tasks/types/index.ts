@@ -12,6 +12,8 @@ export interface Task {
   energy_level: EnergyLevel
   impact_score: ImpactScore
   is_attractive: boolean
+  /** Day or week intention this task serves (#79). */
+  intention_id: string | null
   position_x: number | null
   position_y: number | null
   created_at: string
@@ -26,7 +28,8 @@ export type CreateTaskPayload = Pick<
   | 'energy_level'
   | 'impact_score'
   | 'is_attractive'
->
+> &
+  Partial<Pick<Task, 'intention_id'>>
 
 /** Fields edited through TaskForm. */
 export type TaskFormPayload = Omit<CreateTaskPayload, 'project_id'>

@@ -26,6 +26,9 @@
         <QuadrantBadge :task="task" :inverted="featured" />
         <TaskLinkBadges :task-id="task.id" :on-pod="featured" />
       </div>
+      <div v-if="task.intention_id" class="kcard__intention">
+        <TaskIntentionBadge :intention-id="task.intention_id" :on-pod="featured" />
+      </div>
       <div class="kcard__actions">
         <button
           v-if="featured"
@@ -61,6 +64,7 @@
 import { ref } from 'vue'
 import QuadrantBadge from '@/modules/tasks/components/QuadrantBadge.vue'
 import TaskLinkBadges from '@/modules/tasks/components/TaskLinkBadges.vue'
+import TaskIntentionBadge from '@/modules/tasks/components/TaskIntentionBadge.vue'
 import type { Task } from '@/modules/tasks/types'
 
 const props = defineProps<{
@@ -237,6 +241,12 @@ function onDragEnd(): void {
   justify-content: space-between;
   gap: var(--space-sm);
   margin-top: var(--space-sm);
+}
+
+.kcard__intention {
+  display: flex;
+  min-width: 0;
+  margin-top: var(--space-xs);
 }
 
 /* ── Actions ── */
