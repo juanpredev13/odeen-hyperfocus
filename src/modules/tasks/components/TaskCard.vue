@@ -24,6 +24,7 @@
         Impact {{ task.impact_score }}
       </span>
       <TaskLinkBadges :task-id="task.id" />
+      <TaskIntentionBadge :intention-id="task.intention_id" />
     </div>
   </div>
 </template>
@@ -32,6 +33,7 @@
 import { computed } from 'vue'
 import QuadrantBadge from '@/modules/tasks/components/QuadrantBadge.vue'
 import TaskLinkBadges from '@/modules/tasks/components/TaskLinkBadges.vue'
+import TaskIntentionBadge from '@/modules/tasks/components/TaskIntentionBadge.vue'
 import type { Task } from '@/modules/tasks/types'
 
 const props = defineProps<{ task: Task }>()

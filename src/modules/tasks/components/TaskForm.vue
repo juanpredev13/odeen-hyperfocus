@@ -81,6 +81,26 @@
             </div>
           </div>
 
+          <div class="modal__intention">
+            <label class="modal__meta-label" for="intention">Intention</label>
+            <select id="intention" v-model="form.intention_id" class="modal__select">
+              <option :value="null">None</option>
+              <optgroup v-if="todayOptions.length" label="Today">
+                <option v-for="i in todayOptions" :key="i.id" :value="i.id">{{ i.text }}</option>
+              </optgroup>
+              <optgroup v-if="weekOptions.length" label="This week">
+                <option v-for="i in weekOptions" :key="i.id" :value="i.id">{{ i.text }}</option>
+              </optgroup>
+              <optgroup v-if="staleIntention" label="Earlier">
+                <option :value="staleIntention.id">{{ staleIntention.text }}</option>
+              </optgroup>
+            </select>
+            <p v-if="!todayOptions.length && !weekOptions.length" class="modal__intention-hint">
+              No intentions for today or this week yet.
+              <RouterLink :to="{ name: 'assistant' }">Set them in the Assistant</RouterLink>
+            </p>
+          </div>
+
           <p class="modal__quadrant">
             <QuadrantBadge :task="form" />
             <span class="modal__quadrant-hint">{{ quadrantHint }}</span>
@@ -114,10 +134,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
 import QuadrantBadge from '@/modules/tasks/components/QuadrantBadge.vue'
 import TaskLinks from '@/modules/tasks/components/TaskLinks.vue'
 import { getQuadrantInfo, getTaskQuadrant } from '@/modules/tasks/composables/useTaskQuadrant'
+import { useTaskIntention } from '@/modules/tasks/composables/useTaskIntention'
 import type {
   Task,
   TaskFormPayload,
@@ -145,9 +166,22 @@ const form = reactive({
   energy_level: (props.task?.energy_level ?? 1) as EnergyLevel,
   impact_score: (props.task?.impact_score ?? 1) as ImpactScore,
   is_attractive: props.task?.is_attractive ?? false,
+  intention_id: props.task?.intention_id ?? null,
 })
 
 const quadrantHint = computed(() => getQuadrantInfo(getTaskQuadrant(form)).description)
+
+const { ensureLoaded, todayOptions, weekOptions, findIntention } = useTaskIntention()
+
+onMounted(ensureLoaded)
+
+/** The task's current intention when it is no longer today's or this week's. */
+const staleIntention = computed(() => {
+  const id = props.task?.intention_id ?? null
+  const offered = [...todayOptions.value, ...weekOptions.value].some((i) => i.id === id)
+  return offered ? null : findIntention(id)
+})
+
 
 function handleSubmit(): void {
   if (!form.title.trim()) return
@@ -158,6 +192,7 @@ function handleSubmit(): void {
     energy_level: form.energy_level,
     impact_score: form.impact_score,
     is_attractive: form.is_attractive,
+    intention_id: form.intention_id,
   })
 }
 </script>
@@ -391,6 +426,26 @@ function handleSubmit(): void {
 .modal__quadrant-hint {
   font-size: var(--font-size-xs);
   color: var(--color-gray-400);
+}
+
+/* ── Intention ── */
+.modal__intention {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.modal__intention .modal__select {
+  width: 100%;
+}
+
+.modal__intention-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-400);
+}
+
+.modal__intention-hint a {
+  color: var(--color-primary);
 }
 
 /* ── Links hint (new task) ── */

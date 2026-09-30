@@ -29,6 +29,7 @@ function task(
     energy_level: 1,
     impact_score: impact,
     is_attractive: attractive,
+    intention_id: null,
     position_x: null,
     position_y: null,
     created_at: created,
