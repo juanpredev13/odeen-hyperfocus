@@ -16,6 +16,7 @@
         v-model="newName"
         class="projects__form-input"
         type="text"
+        maxlength="120"
         placeholder="Project name"
         required
       />
@@ -43,6 +44,7 @@
             v-model="editName"
             class="project-card__edit-input"
             type="text"
+            maxlength="120"
             @keydown.enter="handleUpdate(project.id)"
             @keydown.escape="cancelEdit"
             @click.stop

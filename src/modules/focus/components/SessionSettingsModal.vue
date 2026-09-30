@@ -54,11 +54,12 @@
             v-model="newItem"
             class="settings-modal__input"
             type="text"
+            maxlength="120"
             placeholder="Add an item, e.g. Close Slack"
             aria-label="New checklist item"
             @keydown.enter.prevent="addItem"
           />
-          <button class="settings-modal__add-btn" type="button" :disabled="!newItem.trim()" @click="addItem">Add</button>
+          <button class="settings-modal__add-btn" type="button" :disabled="!newItem.trim() || checklist.length >= MAX_CHECKLIST_ITEMS" @click="addItem">Add</button>
         </div>
       </div>
 
@@ -114,9 +115,12 @@ function move(index: number, delta: -1 | 1): void {
   items[target] = a
 }
 
+// Matches the assistant_settings size check in the database.
+const MAX_CHECKLIST_ITEMS = 30
+
 function addItem(): void {
   const item = newItem.value.trim()
-  if (!item) return
+  if (!item || checklist.value.length >= MAX_CHECKLIST_ITEMS) return
   checklist.value.push(item)
   newItem.value = ''
 }
