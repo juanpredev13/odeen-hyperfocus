@@ -95,7 +95,7 @@ import SessionSettingsModal from '@/modules/focus/components/SessionSettingsModa
 import { useFocusSession } from '@/modules/focus/composables/useFocusSession'
 import { pickBreakActivity } from '@/modules/focus/composables/sessionHelpers'
 import { playEndChime } from '@/modules/focus/composables/endSound'
-import { isWindowFocused, notify, setTrayTitle } from '@/services/native'
+import { notify, setTrayTitle } from '@/services/native'
 
 const route = useRoute()
 const router = useRouter()
@@ -131,10 +131,17 @@ const {
   },
 })
 
-/** System notification only when ODEEN is in the background; in front, the Time's up screen is enough. */
+/**
+ * Always sends the system notification: on Linux (GTK/Cinnamon) `isFocused()`
+ * can report true while ODEEN sits behind other windows, which silently
+ * swallowed the popup.
+ */
 async function notifyTimeUp(): Promise<void> {
-  if (await isWindowFocused()) return
-  await notify("Time's up", task.value ? `Session on "${task.value.title}" reached its planned time.` : 'Session reached its planned time.')
+  try {
+    await notify("Time's up", task.value ? `Session on "${task.value.title}" reached its planned time.` : 'Session reached its planned time.')
+  } catch (e: unknown) {
+    console.error('Time-up notification failed:', e)
+  }
 }
 
 // Session countdown next to the tray icon (desktop shell only).
