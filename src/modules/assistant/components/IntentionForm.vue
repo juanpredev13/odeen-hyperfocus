@@ -29,15 +29,15 @@
     <div v-if="showDetails" class="intention-form__details">
       <label class="intention-form__field">
         <span class="intention-form__label">When</span>
-        <input v-model="whenText" class="intention-form__input" type="text" placeholder="e.g. 9:00, right after standup" />
+        <input v-model="whenText" class="intention-form__input" type="text" maxlength="200" placeholder="e.g. 9:00, right after standup" />
       </label>
       <label class="intention-form__field">
         <span class="intention-form__label">Where</span>
-        <input v-model="whereText" class="intention-form__input" type="text" placeholder="e.g. library, home office" />
+        <input v-model="whereText" class="intention-form__input" type="text" maxlength="200" placeholder="e.g. library, home office" />
       </label>
       <label class="intention-form__field">
         <span class="intention-form__label">First action</span>
-        <input v-model="firstAction" class="intention-form__input" type="text" placeholder="e.g. open the draft and outline section 1" />
+        <input v-model="firstAction" class="intention-form__input" type="text" maxlength="200" placeholder="e.g. open the draft and outline section 1" />
       </label>
     </div>
 
