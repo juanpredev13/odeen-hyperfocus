@@ -3,7 +3,13 @@ import type { AuthResult, AuthUser } from '@/modules/auth/types'
 import type { AuthChangeEvent, Session, Subscription } from '@supabase/supabase-js'
 
 export async function signUp(email: string, password: string): Promise<AuthResult<AuthUser>> {
-  const { data, error } = await supabase.auth.signUp({ email, password })
+  // The confirmation link returns to this app (localhost in dev, the deployed URL in production).
+  // The origin must be in the Supabase Auth redirect allow-list (supabase/config.toml).
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: window.location.origin },
+  })
 
   if (error) return { data: null, error: { message: error.message } }
   if (!data.user) return { data: null, error: { message: 'Sign up failed' } }
