@@ -10,12 +10,17 @@ use std::thread::JoinHandle;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use futures_util::StreamExt;
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter, Manager, State};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 /// Multilingual base model (~148 MB): good Spanish/English at real-time speed on a laptop CPU.
 const MODEL_FILE: &str = "ggml-base.bin";
-const MODEL_URL: &str = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin";
+/// Pinned to a repo commit so the file behind the URL cannot change under us.
+const MODEL_URL: &str =
+    "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base.bin";
+/// SHA-256 of that file (the LFS oid on Hugging Face). A download or a file on disk that does not match is discarded.
+const MODEL_SHA256: &str = "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe";
 const WHISPER_RATE: u32 = 16_000;
 /// Hard cap so a forgotten recording can't grow without bound.
 const MAX_SECONDS: usize = 120;
@@ -52,6 +57,18 @@ fn model_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("models").join(MODEL_FILE))
 }
 
+/// Hashes the model on disk and deletes it when it is not the pinned file.
+fn verify_model_file(path: &PathBuf) -> Result<(), String> {
+    let mut file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+    let mut hasher = Sha256::new();
+    std::io::copy(&mut file, &mut hasher).map_err(|e| e.to_string())?;
+    if format!("{:x}", hasher.finalize()) != MODEL_SHA256 {
+        let _ = std::fs::remove_file(path);
+        return Err("Voice model is corrupted or was modified. Download it again.".into());
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn voice_model_status(app: AppHandle) -> Result<ModelStatus, String> {
     let path = model_path(&app)?;
@@ -78,12 +95,14 @@ pub async fn voice_download_model(app: AppHandle) -> Result<(), String> {
     let total = response.content_length().unwrap_or(0);
     let mut file = std::fs::File::create(&partial).map_err(|e| e.to_string())?;
     let mut stream = response.bytes_stream();
+    let mut hasher = Sha256::new();
     let mut downloaded: u64 = 0;
     let mut last_mb = u64::MAX;
 
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| e.to_string())?;
         std::io::Write::write_all(&mut file, &chunk).map_err(|e| e.to_string())?;
+        hasher.update(&chunk);
         downloaded += chunk.len() as u64;
         let mb = downloaded / 1_000_000;
         if mb != last_mb {
@@ -98,6 +117,10 @@ pub async fn voice_download_model(app: AppHandle) -> Result<(), String> {
         }
     }
     drop(file);
+    if format!("{:x}", hasher.finalize()) != MODEL_SHA256 {
+        let _ = std::fs::remove_file(&partial);
+        return Err("Model download failed: checksum mismatch".into());
+    }
     std::fs::rename(&partial, &path).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -219,6 +242,8 @@ fn whisper_context(app: &AppHandle, state: &VoiceState) -> Result<Arc<WhisperCon
     if !path.exists() {
         return Err("Voice model not downloaded".into());
     }
+    // Checked once per app run, before whisper.cpp parses the file.
+    verify_model_file(&path)?;
     let ctx = WhisperContext::new_with_params(&path, WhisperContextParameters::default())
         .map_err(|e| e.to_string())?;
     let ctx = Arc::new(ctx);
