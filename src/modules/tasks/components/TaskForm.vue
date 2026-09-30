@@ -101,11 +101,6 @@
             </p>
           </div>
 
-          <p class="modal__quadrant">
-            <QuadrantBadge :task="form" />
-            <span class="modal__quadrant-hint">{{ quadrantHint }}</span>
-          </p>
-
           <TaskLinks v-if="task" :task-id="task.id" />
           <p v-else class="modal__links-hint">Save the task to link GitHub issues or Obsidian notes.</p>
 
@@ -135,9 +130,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive } from 'vue'
-import QuadrantBadge from '@/modules/tasks/components/QuadrantBadge.vue'
 import TaskLinks from '@/modules/tasks/components/TaskLinks.vue'
-import { getQuadrantInfo, getTaskQuadrant } from '@/modules/tasks/composables/useTaskQuadrant'
 import { useTaskIntention } from '@/modules/tasks/composables/useTaskIntention'
 import type {
   Task,
@@ -168,8 +161,6 @@ const form = reactive({
   is_attractive: props.task?.is_attractive ?? false,
   intention_id: props.task?.intention_id ?? null,
 })
-
-const quadrantHint = computed(() => getQuadrantInfo(getTaskQuadrant(form)).description)
 
 const { ensureLoaded, todayOptions, weekOptions, findIntention } = useTaskIntention()
 
@@ -413,19 +404,6 @@ function handleSubmit(): void {
 .modal__toggle-text {
   font-size: var(--font-size-sm);
   color: var(--color-primary);
-}
-
-/* ── Quadrant preview ── */
-.modal__quadrant {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin: 0;
-}
-
-.modal__quadrant-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-gray-400);
 }
 
 /* ── Intention ── */
