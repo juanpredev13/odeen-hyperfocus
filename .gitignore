@@ -36,6 +36,10 @@ pnpm-debug.log*
 supabase/.temp/
 supabase/.branches/
 
+# Tauri build output (also in src-tauri/.gitignore, repeated here so no branch can commit it)
+src-tauri/target/
+src-tauri/gen/schemas/
+
 # Stitch
 /stitch
 .playwright-mcp/
