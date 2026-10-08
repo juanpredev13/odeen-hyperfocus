@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint'
 import eslintConfigPrettier from 'eslint-config-prettier'
 
 export default tseslint.config(
-  { ignores: ['dist', '.vite'] },
+  { ignores: ['dist', 'mcp/dist', '.vite'] },
   js.configs.recommended,
   ...tseslint.configs.strict,
   ...pluginVue.configs['flat/recommended'],
