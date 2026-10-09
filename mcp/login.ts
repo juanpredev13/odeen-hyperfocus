@@ -24,7 +24,7 @@ async function ask(question: string, hidden = false): Promise<string> {
   const answer = await lines.next()
   muted = false
   if (hidden) process.stdout.write('\n')
-  if (answer.done) throw new Error('No input.')
+  if (answer.done) throw new Error('No input. Run `pnpm mcp:login` in an interactive terminal.')
   return answer.value
 }
 
@@ -55,6 +55,13 @@ async function logout(): Promise<number> {
   return 0
 }
 
-const code = process.argv[2] === 'logout' ? await logout() : await login()
+let code: number
+try {
+  code = process.argv[2] === 'logout' ? await logout() : await login()
+} catch (thrown) {
+  // Typically no stdin: the command was started somewhere that cannot take typed input.
+  console.error(`\n${thrown instanceof Error ? thrown.message : String(thrown)}`)
+  code = 1
+}
 prompt.close()
 process.exit(code)
