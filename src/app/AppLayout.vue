@@ -54,7 +54,7 @@
 
     <nav class="tabbar" aria-label="Main (mobile)">
       <RouterLink
-        v-for="link in links"
+        v-for="link in tabLinks"
         :key="link.to"
         class="tabbar__link"
         :class="{ 'tabbar__link--active': isActive(link) }"
@@ -63,6 +63,10 @@
         <span class="material-symbols-outlined tabbar__icon" aria-hidden="true">{{ link.icon }}</span>
         {{ link.short }}
       </RouterLink>
+      <button class="tabbar__link tabbar__link--action" @click="confirmSignOut">
+        <span class="material-symbols-outlined tabbar__icon" aria-hidden="true">logout</span>
+        Sign out
+      </button>
     </nav>
   </div>
 </template>
@@ -78,7 +82,8 @@ interface NavLink {
   /** Path prefixes that also count as this section. */
   match: string[]
   label: string
-  short: string
+  /** Tab bar label. Links without one only appear in the side nav. */
+  short?: string
   icon: string
 }
 
@@ -86,8 +91,10 @@ const links: NavLink[] = [
   { to: '/assistant', match: ['/assistant'], label: 'Today', short: 'Today', icon: 'bolt' },
   { to: '/', match: ['/project/'], label: 'Projects', short: 'Projects', icon: 'dashboard' },
   { to: '/tasks', match: [], label: 'Tasks', short: 'Tasks', icon: 'task_alt' },
-  { to: '/design-system', match: [], label: 'Design System', short: 'System', icon: 'palette' },
+  { to: '/design-system', match: [], label: 'Design System', icon: 'palette' },
 ]
+
+const tabLinks = links.filter((link) => link.short !== undefined)
 
 const route = useRoute()
 const router = useRouter()
@@ -101,6 +108,12 @@ const { theme, toggleTheme } = useTheme()
 async function handleSignOut(): Promise<void> {
   await signOut()
   await router.push('/login')
+}
+
+// The tab bar button sits next to the navigation tabs, so a stray tap must not sign out.
+async function confirmSignOut(): Promise<void> {
+  if (!confirm('Sign out of ODEEN?')) return
+  await handleSignOut()
 }
 </script>
 
@@ -295,6 +308,12 @@ async function handleSignOut(): Promise<void> {
 
   .tabbar__link--active {
     color: var(--color-accent-strong);
+  }
+
+  .tabbar__link--action {
+    background: none;
+    border: none;
+    cursor: pointer;
   }
 
   .tabbar__icon {
