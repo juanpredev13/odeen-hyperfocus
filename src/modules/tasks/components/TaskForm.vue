@@ -17,6 +17,7 @@
               v-model="form.title"
               class="modal__title-input"
               type="text"
+              maxlength="300"
               placeholder="What needs to be done?"
               required
               autofocus
@@ -28,6 +29,7 @@
           <textarea
             v-model="form.description"
             class="modal__notes"
+            maxlength="20000"
             placeholder="Add optional notes..."
             rows="3"
           ></textarea>
