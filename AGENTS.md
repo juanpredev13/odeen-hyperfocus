@@ -2,6 +2,8 @@
 
 ODEEN is a minimalist deep work operating system. The core POC excludes AI, analytics, collaboration, and advanced metrics. The one approved exception is the **assistant module** (`src/modules/assistant/`, issue #21 and its sub-issues). It is a personal focus coach, built as an addition alongside the POC modules rather than replacing them.
 
+The **MCP server** (`mcp/`, issue #99) is a second approved addition: a local stdio server that lets Claude Code read and write ODEEN data. It lives outside `src/` because it is a Node process, not part of the web app, and it reuses the module services instead of querying Supabase itself. See `mcp/README.md`.
+
 Full spec: `docs/requirements.md`
 
 ## Tech Stack
@@ -169,7 +171,7 @@ All commit messages must follow [Conventional Commits](https://www.conventionalc
 | `ci`       | CI configuration                               |
 | `chore`    | Maintenance tasks, tooling, configs            |
 
-Scopes: `auth`, `projects`, `tasks`, `kanban`, `graph`, `focus`, `assistant`, `ui`, `db`.
+Scopes: `auth`, `projects`, `tasks`, `kanban`, `graph`, `focus`, `assistant`, `mcp`, `ui`, `db`.
 
 ```
 feat(kanban): add drag-and-drop between columns
@@ -362,8 +364,8 @@ gh issue list --search "kanban drag"
 - Add Tailwind or any CSS utility framework
 - Use Options API — Composition API only
 - Put business logic in components
-- Create files outside the defined module structure
-- Add features outside POC scope (see `docs/requirements.md` Section 8), except assistant-module work tracked in #21 and its sub-issues
+- Create files outside the defined module structure (the MCP server in `mcp/` is the exception)
+- Add features outside POC scope (see `docs/requirements.md` Section 8), except assistant-module work tracked in #21 and its sub-issues, and the MCP server tracked in #99
 - Commit third-party copyrighted text (e.g. book excerpts or summaries) — this repo is public; assistant reference material lives in private storage
 - Use `any`
 - Skip error handling on Supabase calls
