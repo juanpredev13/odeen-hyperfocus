@@ -260,16 +260,20 @@ onUnmounted(() => {
 }
 
 /* Main */
+/* Scrolls when the setup is taller than the viewport (long checklist, short screens).
+   margin: auto on the children centres them without clipping the top on overflow,
+   which align-items: center would do. The vertical padding clears the absolute header and footer. */
 .focus__main {
   flex: 1;
+  min-height: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
+  overflow-y: auto;
+  padding: 6rem 2rem;
 }
 
 .focus__loading,
 .focus__not-found {
+  margin: auto;
   text-align: center;
   color: var(--color-gray-400);
 }
@@ -280,6 +284,7 @@ onUnmounted(() => {
 }
 
 .focus__content {
+  margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
