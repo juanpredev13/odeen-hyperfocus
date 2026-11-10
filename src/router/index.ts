@@ -18,6 +18,21 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
 
+  {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: () => import('@/modules/auth/views/ForgotPasswordView.vue'),
+    meta: { public: true },
+  },
+  // Landing page of the recovery link. The link signs the user in, so this route
+  // must stay reachable with a session (allowAuthenticated) instead of bouncing home.
+  {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('@/modules/auth/views/ResetPasswordView.vue'),
+    meta: { public: true, allowAuthenticated: true },
+  },
+
   // Focus mode (full-screen, no nav)
   {
     path: '/focus/:taskId',
@@ -108,8 +123,16 @@ router.beforeEach(async (to) => {
     return { name: 'login' }
   }
 
-  if (isAuthenticated && isPublicRoute) {
+  if (isAuthenticated && isPublicRoute && to.meta.allowAuthenticated !== true) {
     return { name: 'home' }
+  }
+
+  // Email links land with a one-time PKCE `code` that getSession() above has already
+  // exchanged. Drop it so the spent code does not linger in the address bar and history.
+  if (typeof to.query.code === 'string') {
+    const query = { ...to.query }
+    delete query.code
+    return { path: to.path, query, hash: to.hash, replace: true }
   }
 })
 

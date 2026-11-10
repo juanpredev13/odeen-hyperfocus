@@ -37,7 +37,7 @@
         <p v-if="error" class="auth-form__error">{{ error.message }}</p>
 
         <p v-if="registered" class="auth-form__success">
-          Account created — check your email to confirm.
+          Account created — check your email to confirm. Open the link in this same browser.
         </p>
 
         <button class="auth-form__submit" type="submit" :disabled="loading || registered">

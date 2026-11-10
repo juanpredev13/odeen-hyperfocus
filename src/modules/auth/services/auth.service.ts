@@ -40,6 +40,32 @@ export async function signOut(): Promise<AuthResult<null>> {
   return { data: null, error: null }
 }
 
+// Email address shape check before calling Auth; the server validates again.
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export async function requestPasswordReset(email: string): Promise<AuthResult<null>> {
+  const address = email.trim()
+  if (!EMAIL_PATTERN.test(address)) return { data: null, error: { message: 'Enter a valid email address' } }
+
+  // The recovery link returns to /reset-password on this origin, which must be in the
+  // Supabase Auth redirect allow-list (supabase/config.toml).
+  const { error } = await supabase.auth.resetPasswordForEmail(address, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  })
+
+  if (error) return { data: null, error: { message: error.message } }
+
+  return { data: null, error: null }
+}
+
+export async function updatePassword(password: string): Promise<AuthResult<null>> {
+  const { error } = await supabase.auth.updateUser({ password })
+
+  if (error) return { data: null, error: { message: error.message } }
+
+  return { data: null, error: null }
+}
+
 export async function getSession(): Promise<AuthResult<AuthUser>> {
   const { data, error } = await supabase.auth.getSession()
 
