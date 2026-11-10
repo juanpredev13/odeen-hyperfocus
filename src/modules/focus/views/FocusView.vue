@@ -197,6 +197,12 @@ onUnmounted(() => {
   align-items: center;
   opacity: 0;
   transition: opacity 0.5s;
+  /* The bar sits over the scrolling main area: only its controls take clicks. */
+  pointer-events: none;
+}
+
+.focus__header > * {
+  pointer-events: auto;
 }
 
 .focus:hover .focus__header {
@@ -315,6 +321,8 @@ onUnmounted(() => {
   gap: 3rem;
   opacity: 0;
   transition: opacity 0.7s;
+  /* Hints only, and it sits over the scrolling main area. */
+  pointer-events: none;
 }
 
 .focus:hover .focus__footer {
