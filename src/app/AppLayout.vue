@@ -91,6 +91,7 @@ const links: NavLink[] = [
   { to: '/assistant', match: ['/assistant'], label: 'Today', short: 'Today', icon: 'bolt' },
   { to: '/', match: ['/project/'], label: 'Projects', short: 'Projects', icon: 'dashboard' },
   { to: '/tasks', match: [], label: 'Tasks', short: 'Tasks', icon: 'task_alt' },
+  { to: '/organizations', match: ['/organizations'], label: 'Organizations', short: 'Orgs', icon: 'apartment' },
   { to: '/design-system', match: [], label: 'Design System', icon: 'palette' },
 ]
 
