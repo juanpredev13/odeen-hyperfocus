@@ -43,3 +43,4 @@ src-tauri/gen/schemas/
 # Stitch
 /stitch
 .playwright-mcp/
+.vercel

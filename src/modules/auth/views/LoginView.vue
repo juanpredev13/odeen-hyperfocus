@@ -18,7 +18,10 @@
         </div>
 
         <div class="auth-form__field">
-          <label class="auth-form__label" for="password">Password</label>
+          <div class="auth-form__label-row">
+            <label class="auth-form__label" for="password">Password</label>
+            <RouterLink class="auth-form__forgot" to="/forgot-password">Forgot password?</RouterLink>
+          </div>
           <input
             id="password"
             v-model="password"
@@ -112,6 +115,23 @@ async function handleSubmit(): Promise<void> {
 .auth-form__label {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+}
+
+.auth-form__label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.auth-form__forgot {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
+  text-decoration: underline;
+}
+
+.auth-form__forgot:hover {
   color: var(--color-primary);
 }
 

@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint'
 import eslintConfigPrettier from 'eslint-config-prettier'
 
 export default tseslint.config(
-  { ignores: ['dist', '.vite', 'src-tauri/target', 'src-tauri/gen'] },
+  { ignores: ['dist', 'mcp/dist', '.vite', 'src-tauri/target', 'src-tauri/gen'] },
   js.configs.recommended,
   ...tseslint.configs.strict,
   ...pluginVue.configs['flat/recommended'],
@@ -29,6 +29,7 @@ export default tseslint.config(
         setInterval: 'readonly',
         clearInterval: 'readonly',
         requestAnimationFrame: 'readonly',
+        console: 'readonly',
       },
     },
   },

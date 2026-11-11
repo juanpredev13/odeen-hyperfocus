@@ -25,14 +25,19 @@
             class="auth-form__input"
             type="password"
             autocomplete="new-password"
+            minlength="10"
+            aria-describedby="password-hint"
             required
           />
+          <p id="password-hint" class="auth-form__hint">
+            At least 10 characters, with upper and lower case letters and a number.
+          </p>
         </div>
 
         <p v-if="error" class="auth-form__error">{{ error.message }}</p>
 
         <p v-if="registered" class="auth-form__success">
-          Account created — check your email to confirm.
+          Account created — check your email to confirm. Open the link in this same browser.
         </p>
 
         <button class="auth-form__submit" type="submit" :disabled="loading || registered">
@@ -131,6 +136,11 @@ async function handleSubmit(): Promise<void> {
 
 .auth-form__input:focus {
   border-color: var(--color-primary);
+}
+
+.auth-form__hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
 }
 
 .auth-form__error {

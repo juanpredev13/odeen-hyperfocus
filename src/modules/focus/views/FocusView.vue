@@ -226,6 +226,12 @@ onUnmounted(() => {
   align-items: center;
   opacity: 0;
   transition: opacity 0.5s;
+  /* The bar sits over the scrolling main area: only its controls take clicks. */
+  pointer-events: none;
+}
+
+.focus__header > * {
+  pointer-events: auto;
 }
 
 .focus:hover .focus__header {
@@ -289,16 +295,20 @@ onUnmounted(() => {
 }
 
 /* Main */
+/* Scrolls when the setup is taller than the viewport (long checklist, short screens).
+   margin: auto on the children centres them without clipping the top on overflow,
+   which align-items: center would do. The vertical padding clears the absolute header and footer. */
 .focus__main {
   flex: 1;
+  min-height: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
+  overflow-y: auto;
+  padding: 6rem 2rem;
 }
 
 .focus__loading,
 .focus__not-found {
+  margin: auto;
   text-align: center;
   color: var(--color-gray-400);
 }
@@ -309,6 +319,7 @@ onUnmounted(() => {
 }
 
 .focus__content {
+  margin: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -339,6 +350,8 @@ onUnmounted(() => {
   gap: 3rem;
   opacity: 0;
   transition: opacity 0.7s;
+  /* Hints only, and it sits over the scrolling main area. */
+  pointer-events: none;
 }
 
 .focus:hover .focus__footer {
