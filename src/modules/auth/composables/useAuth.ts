@@ -82,6 +82,36 @@ export function useAuth() {
     user.value = null
   }
 
+  async function requestPasswordReset(email: string): Promise<boolean> {
+    loading.value = true
+    error.value = null
+
+    const result = await authService.requestPasswordReset(email)
+
+    loading.value = false
+    if (result.error) {
+      error.value = result.error
+      return false
+    }
+
+    return true
+  }
+
+  async function updatePassword(password: string): Promise<boolean> {
+    loading.value = true
+    error.value = null
+
+    const result = await authService.updatePassword(password)
+
+    loading.value = false
+    if (result.error) {
+      error.value = result.error
+      return false
+    }
+
+    return true
+  }
+
   function clearError(): void {
     error.value = null
   }
@@ -94,6 +124,8 @@ export function useAuth() {
     signUp,
     signIn,
     signOut,
+    requestPasswordReset,
+    updatePassword,
     clearError,
   }
 }
