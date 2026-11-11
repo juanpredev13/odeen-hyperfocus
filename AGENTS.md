@@ -4,6 +4,8 @@ ODEEN is a minimalist deep work operating system. The core POC excludes AI, anal
 
 The **MCP server** (`mcp/`, issue #99) is a second approved addition: a local stdio server that lets Claude Code read and write ODEEN data. It lives outside `src/` because it is a Node process, not part of the web app, and it reuses the module services instead of querying Supabase itself. See `mcp/README.md`.
 
+The **organizations module** (`src/modules/organizations/`, issue #106 and its sub-issues) is a third approved addition and the only multi-user feature. Users create organizations, invite collaborators (ODEEN users with their own account, roles `owner | admin | member`) and keep client records. Access is enforced by RLS through the security-definer helpers in the organizations migration; personal data in the other modules stays single-user.
+
 Full spec: `docs/requirements.md`
 
 ## Tech Stack
@@ -171,7 +173,7 @@ All commit messages must follow [Conventional Commits](https://www.conventionalc
 | `ci`       | CI configuration                               |
 | `chore`    | Maintenance tasks, tooling, configs            |
 
-Scopes: `auth`, `projects`, `tasks`, `kanban`, `graph`, `focus`, `assistant`, `mcp`, `ui`, `db`.
+Scopes: `auth`, `projects`, `tasks`, `kanban`, `graph`, `focus`, `assistant`, `mcp`, `orgs`, `ui`, `db`.
 
 ```
 feat(kanban): add drag-and-drop between columns
@@ -365,7 +367,7 @@ gh issue list --search "kanban drag"
 - Use Options API — Composition API only
 - Put business logic in components
 - Create files outside the defined module structure (the MCP server in `mcp/` is the exception)
-- Add features outside POC scope (see `docs/requirements.md` Section 8), except assistant-module work tracked in #21 and its sub-issues, and the MCP server tracked in #99
+- Add features outside POC scope (see `docs/requirements.md` Section 8), except assistant-module work tracked in #21 and its sub-issues, the MCP server tracked in #99, and the organizations module tracked in #106 and its sub-issues
 - Commit third-party copyrighted text (e.g. book excerpts or summaries) — this repo is public; assistant reference material lives in private storage
 - Use `any`
 - Skip error handling on Supabase calls
