@@ -2,6 +2,13 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Permissions shared by every platform",
-  "windows": ["main"],
-  "permissions": ["core:default", "notification:default", "os:default"]
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "notification:default",
+    "os:default",
+    "deep-link:default"
+  ]
 }

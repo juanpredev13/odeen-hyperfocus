@@ -134,7 +134,22 @@ fn send_notification(app: tauri::AppHandle, title: String, body: String) -> Resu
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+
+    // Desktop: a clicked odeen:// link launches a second process on Linux and Windows.
+    // single-instance hands the URL to the running app (and its deep-link listener)
+    // and exits the new process. Must be the first plugin registered.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.unminimize();
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    }));
+
+    builder
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(invoke_handler())
@@ -145,6 +160,16 @@ pub fn run() {
                 app.handle()
                     .plugin(tauri_plugin_global_shortcut::Builder::new().build())?;
                 app.manage(voice::VoiceState::default());
+
+                // The .deb registers odeen:// through its .desktop file; an AppImage or
+                // `tauri dev` binary has to register itself at runtime.
+                #[cfg(target_os = "linux")]
+                {
+                    use tauri_plugin_deep_link::DeepLinkExt;
+                    if let Err(e) = app.deep_link().register_all() {
+                        eprintln!("deep link registration failed: {e}");
+                    }
+                }
             }
 
             if cfg!(debug_assertions) {

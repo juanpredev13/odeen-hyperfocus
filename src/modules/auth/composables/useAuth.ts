@@ -112,6 +112,19 @@ export function useAuth() {
     return true
   }
 
+  /**
+   * Desktop deep link from an auth email. Returns the path to open, or null when the URL
+   * is not an auth link. A failed link opens /login with the failure in `error`.
+   */
+  async function completeEmailLink(url: string): Promise<string | null> {
+    const result = await authService.completeEmailLink(url)
+    if (result.error) {
+      error.value = result.error
+      return '/login'
+    }
+    return result.data
+  }
+
   function clearError(): void {
     error.value = null
   }
@@ -126,6 +139,7 @@ export function useAuth() {
     signOut,
     requestPasswordReset,
     updatePassword,
+    completeEmailLink,
     clearError,
   }
 }

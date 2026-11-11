@@ -63,6 +63,20 @@
       "debugApplicationIdSuffix": ".debug"
     },
     "category": "Productivity",
-    "shortDescription": "Deep work operating system"
+    "shortDescription": "Deep work operating system",
+    "linux": {
+      "deb": {
+        "desktopTemplate": "odeen.desktop"
+      }
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "odeen"
+        ]
+      }
+    }
   }
 }

@@ -1,6 +1,18 @@
 import { supabase } from '@/services/supabase'
 import type { AuthResult, AuthUser } from '@/modules/auth/types'
 import type { AuthChangeEvent, Session, Subscription } from '@supabase/supabase-js'
+import { DEEP_LINK_SCHEME, isNative } from '@/services/native'
+
+/**
+ * Where an auth email link should send the user back to. The web app uses its own
+ * origin; the desktop app has no reachable origin (tauri://), so links use the
+ * odeen:// scheme and come back through completeEmailLink(). Both must be in the
+ * Supabase Auth redirect allow-list (supabase/config.toml).
+ */
+function authRedirect(path: string): string {
+  if (isNative()) return `${DEEP_LINK_SCHEME}://auth${path}`
+  return `${window.location.origin}${path}`
+}
 
 export async function signUp(email: string, password: string): Promise<AuthResult<AuthUser>> {
   // The confirmation link returns to this app (localhost in dev, the deployed URL in production).
@@ -8,7 +20,7 @@ export async function signUp(email: string, password: string): Promise<AuthResul
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: window.location.origin },
+    options: { emailRedirectTo: authRedirect('/') },
   })
 
   if (error) return { data: null, error: { message: error.message } }
@@ -47,10 +59,8 @@ export async function requestPasswordReset(email: string): Promise<AuthResult<nu
   const address = email.trim()
   if (!EMAIL_PATTERN.test(address)) return { data: null, error: { message: 'Enter a valid email address' } }
 
-  // The recovery link returns to /reset-password on this origin, which must be in the
-  // Supabase Auth redirect allow-list (supabase/config.toml).
   const { error } = await supabase.auth.resetPasswordForEmail(address, {
-    redirectTo: `${window.location.origin}/reset-password`,
+    redirectTo: authRedirect('/reset-password'),
   })
 
   if (error) return { data: null, error: { message: error.message } }
@@ -64,6 +74,37 @@ export async function updatePassword(password: string): Promise<AuthResult<null>
   if (error) return { data: null, error: { message: error.message } }
 
   return { data: null, error: null }
+}
+
+/**
+ * Desktop: finishes an auth email link that reopened the app as odeen://auth/<path>?code=…
+ * Exchanges the one-time PKCE code for a session and returns the in-app path to show.
+ * Returns null data for URLs that are not auth links.
+ */
+export async function completeEmailLink(url: string): Promise<AuthResult<string>> {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return { data: null, error: null }
+  }
+  if (parsed.protocol !== `${DEEP_LINK_SCHEME}:` || parsed.hostname !== 'auth') {
+    return { data: null, error: null }
+  }
+
+  // Only the routes authRedirect() hands out; anything else lands on home.
+  const path = parsed.pathname === '/reset-password' ? '/reset-password' : '/'
+
+  const description = parsed.searchParams.get('error_description')
+  if (description) return { data: null, error: { message: description } }
+
+  const code = parsed.searchParams.get('code')
+  if (!code) return { data: null, error: { message: 'The email link is missing its code.' } }
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  if (error) return { data: null, error: { message: error.message } }
+
+  return { data: path, error: null }
 }
 
 export async function getSession(): Promise<AuthResult<AuthUser>> {

@@ -37,6 +37,23 @@ export function isDesktop(platform: NativePlatform): boolean {
   return platform === 'linux' || platform === 'windows' || platform === 'macos'
 }
 
+// ── Deep links ───────────────────────────────────────────────────
+
+/** URL scheme the desktop shell registers (src-tauri/tauri.conf.json → plugins.deep-link). */
+export const DEEP_LINK_SCHEME = 'odeen'
+
+/**
+ * Calls `handler` with every odeen:// URL the app is opened with: the one that
+ * launched it (cold start) and any later ones forwarded by the single-instance plugin.
+ */
+export async function onDeepLink(handler: (url: string) => void): Promise<void> {
+  if (!isNative()) return
+  const { getCurrent, onOpenUrl } = await import('@tauri-apps/plugin-deep-link')
+  const initial = await getCurrent()
+  initial?.forEach(handler)
+  await onOpenUrl((urls) => urls.forEach(handler))
+}
+
 // ── Notifications ────────────────────────────────────────────────
 
 // Commands live in src-tauri/src/lib.rs (the plugin's JS wrapper misreads permission on Linux).

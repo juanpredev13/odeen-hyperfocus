@@ -6,14 +6,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { RouterView, useRoute } from 'vue-router'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/modules/auth/composables/useAuth'
 import QuickCapture from '@/modules/assistant/components/QuickCapture.vue'
 import CheckinPrompt from '@/modules/assistant/components/CheckinPrompt.vue'
-import { ensureTray, registerCaptureShortcut } from '@/services/native'
+import { ensureTray, onDeepLink, registerCaptureShortcut } from '@/services/native'
 
 const route = useRoute()
-const { isAuthenticated, user } = useAuth()
+const router = useRouter()
+const { isAuthenticated, user, completeEmailLink } = useAuth()
 
 // Mounted at the root so they work on every signed-in view, including Focus Mode.
 const showQuickCapture = computed(() => isAuthenticated.value && route.meta.public !== true)
@@ -22,5 +23,13 @@ const showQuickCapture = computed(() => isAuthenticated.value && route.meta.publ
 onMounted(() => {
   void registerCaptureShortcut()
   void ensureTray()
+  void onDeepLink(handleDeepLink)
 })
+
+// odeen://auth/... links from confirmation and recovery emails. A failed link shows
+// its error on the login page.
+async function handleDeepLink(url: string): Promise<void> {
+  const path = await completeEmailLink(url)
+  if (path) await router.push(path)
+}
 </script>
