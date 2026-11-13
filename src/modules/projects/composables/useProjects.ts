@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import * as projectsService from '@/modules/projects/services/projects.service'
 import { useActiveProject } from '@/store/activeProject'
-import type { Project, ProjectsError } from '@/modules/projects/types'
+import type { Project, ProjectSharing, ProjectsError } from '@/modules/projects/types'
 
 const projects = ref<Project[]>([])
 const loading = ref(false)
@@ -25,11 +25,11 @@ export function useProjects() {
     projects.value = result.data ?? []
   }
 
-  async function createProject(name: string): Promise<boolean> {
+  async function createProject(name: string, sharing?: ProjectSharing): Promise<boolean> {
     loading.value = true
     error.value = null
 
-    const result = await projectsService.createProject({ name })
+    const result = await projectsService.createProject({ name, ...sharing })
 
     loading.value = false
     if (result.error) {
@@ -45,11 +45,14 @@ export function useProjects() {
     return true
   }
 
-  async function updateProject(id: string, name: string): Promise<boolean> {
+  async function updateProject(
+    id: string,
+    fields: { name?: string } & Partial<ProjectSharing>,
+  ): Promise<boolean> {
     loading.value = true
     error.value = null
 
-    const result = await projectsService.updateProject({ id, name })
+    const result = await projectsService.updateProject({ id, ...fields })
 
     loading.value = false
     if (result.error) {
