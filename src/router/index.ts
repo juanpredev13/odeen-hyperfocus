@@ -101,6 +101,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/assistant/views/SegmentBalanceView.vue'),
       },
       {
+        path: 'organizations',
+        name: 'organizations',
+        component: () => import('@/modules/organizations/views/OrganizationsView.vue'),
+      },
+      {
+        path: 'organizations/:id',
+        name: 'organization',
+        component: () => import('@/modules/organizations/views/OrganizationView.vue'),
+      },
+      {
         path: 'design-system',
         name: 'design-system',
         component: () => import('@/modules/projects/views/DesignSystemView.vue'),

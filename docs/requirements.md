@@ -277,7 +277,7 @@ The POC is successful if:
 
 - AI features
 - Analytics dashboard
-- Multi-user collaboration
+- Multi-user collaboration (exception: organizations with collaborators and clients, #106)
 - Notifications
 - Advanced sprint metrics
 - Offline mode
