@@ -20,7 +20,7 @@
         <div class="kanban-header__left">
           <RouterLink
             class="kanban-header__back"
-            :to="`/project/${toSlug(selectedProject.name)}`"
+            :to="`/project/${slugOf(selectedProject)}`"
             aria-label="Back to project"
           >
             <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
@@ -135,7 +135,7 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
 
 const route = useRoute()
 const router = useRouter()
-const { projects, fetchProjects } = useProjects()
+const { projects, fetchProjects, slugOf, findBySlug } = useProjects()
 
 const selectedProject = ref<Project | null>(null)
 const tasks = ref<Task[]>([])
@@ -148,9 +148,6 @@ const editingTask = ref<Task | null>(null)
 const newTaskStatus = ref<TaskStatus>('todo')
 const draggingTaskId = ref<string | null>(null)
 
-function toSlug(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, '-')
-}
 
 onMounted(async () => {
   loading.value = true
@@ -163,7 +160,7 @@ watch(() => route.params.slug, loadProject)
 
 async function loadProject(): Promise<void> {
   const slug = route.params.slug as string
-  const project = projects.value.find((p) => toSlug(p.name) === slug)
+  const project = findBySlug(slug)
   if (!project) return
   selectedProject.value = project
   const result = await fetchTasks(project.id)

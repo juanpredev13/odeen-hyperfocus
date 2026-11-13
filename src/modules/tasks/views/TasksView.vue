@@ -4,7 +4,7 @@
     <template v-if="selectedProject">
       <header class="tasks__top-bar">
         <div class="tasks__header-left">
-          <RouterLink class="tasks__back" :to="`/project/${toSlug(selectedProject.name)}`">
+          <RouterLink class="tasks__back" :to="`/project/${slugOf(selectedProject)}`">
             <span class="material-symbols-outlined">arrow_back</span>
           </RouterLink>
           <h2 class="tasks__project-title">{{ selectedProject.name }}</h2>
@@ -67,7 +67,7 @@
             v-for="p in projects"
             :key="p.id"
             class="tasks__project-card"
-            :to="{ name: 'project', params: { slug: toSlug(p.name) } }"
+            :to="{ name: 'project', params: { slug: slugOf(p) } }"
           >
             <div class="tasks__project-card-top">
               <h3 class="tasks__project-card-name">{{ p.name }}</h3>
@@ -107,7 +107,7 @@
             <div class="tasks__group-header">
               <RouterLink
                 class="tasks__group-name"
-                :to="{ name: 'project', params: { slug: toSlug(group.project.name) } }"
+                :to="{ name: 'project', params: { slug: slugOf(group.project) } }"
               >
                 {{ group.project.name }}
               </RouterLink>
@@ -156,7 +156,7 @@ import TaskForm from '@/modules/tasks/components/TaskForm.vue'
 import type { Task, TaskFormPayload } from '@/modules/tasks/types'
 
 const route = useRoute()
-const { projects, fetchProjects } = useProjects()
+const { projects, fetchProjects, slugOf, findBySlug } = useProjects()
 
 const allTasks = ref<Task[]>([])
 const loading = ref(false)
@@ -175,13 +175,10 @@ const currentDate = new Date().toLocaleDateString('en-US', {
   minute: '2-digit',
 })
 
-function toSlug(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, '-')
-}
 
 const projectSlug = computed(() => route.params.slug as string | undefined)
 const selectedProject = computed(() =>
-  projectSlug.value ? projects.value.find((p) => toSlug(p.name) === projectSlug.value) : null,
+  projectSlug.value ? findBySlug(projectSlug.value) : null,
 )
 
 onMounted(async () => {
@@ -195,7 +192,7 @@ watch(() => route.params.slug, loadTasks)
 
 async function loadTasks(): Promise<void> {
   if (projectSlug.value) {
-    const project = projects.value.find((p) => toSlug(p.name) === projectSlug.value)
+    const project = findBySlug(projectSlug.value)
     if (project) {
       const result = await fetchTasks(project.id)
       if (result.data) allTasks.value = result.data

@@ -1,11 +1,22 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import * as projectsService from '@/modules/projects/services/projects.service'
 import { useActiveProject } from '@/store/activeProject'
-import type { Project, ProjectsError } from '@/modules/projects/types'
+import { buildProjectSlugs, toSlug } from '@/modules/projects/composables/projectSlugs'
+import type { Project, ProjectSharing, ProjectsError } from '@/modules/projects/types'
 
 const projects = ref<Project[]>([])
 const loading = ref(false)
 const error = ref<ProjectsError | null>(null)
+const slugs = computed(() => buildProjectSlugs(projects.value))
+
+/** URL slug of a project, unique among the projects the user can see. */
+function slugOf(project: Project): string {
+  return slugs.value.get(project.id) ?? toSlug(project.name)
+}
+
+function findBySlug(slug: string): Project | null {
+  return projects.value.find((p) => slugOf(p) === slug) ?? null
+}
 
 export function useProjects() {
   const { activeProject, setActiveProject, clearActiveProject } = useActiveProject()
@@ -25,11 +36,11 @@ export function useProjects() {
     projects.value = result.data ?? []
   }
 
-  async function createProject(name: string): Promise<boolean> {
+  async function createProject(name: string, sharing?: ProjectSharing): Promise<boolean> {
     loading.value = true
     error.value = null
 
-    const result = await projectsService.createProject({ name })
+    const result = await projectsService.createProject({ name, ...sharing })
 
     loading.value = false
     if (result.error) {
@@ -45,11 +56,14 @@ export function useProjects() {
     return true
   }
 
-  async function updateProject(id: string, name: string): Promise<boolean> {
+  async function updateProject(
+    id: string,
+    fields: { name?: string } & Partial<ProjectSharing>,
+  ): Promise<boolean> {
     loading.value = true
     error.value = null
 
-    const result = await projectsService.updateProject({ id, name })
+    const result = await projectsService.updateProject({ id, ...fields })
 
     loading.value = false
     if (result.error) {
@@ -106,5 +120,7 @@ export function useProjects() {
     updateProject,
     deleteProject,
     selectProject,
+    slugOf,
+    findBySlug,
   }
 }

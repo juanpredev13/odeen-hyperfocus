@@ -111,11 +111,11 @@
         <div class="project__sidebar-section">
           <h3 class="project__sidebar-label">Views</h3>
           <div class="project__views">
-            <RouterLink class="project__view-link" :to="`/project/${toSlug(project.name)}/board`">
+            <RouterLink class="project__view-link" :to="`/project/${slugOf(project)}/board`">
               <span class="material-symbols-outlined">view_kanban</span>
               Board
             </RouterLink>
-            <RouterLink class="project__view-link" :to="`/project/${toSlug(project.name)}/tasks`">
+            <RouterLink class="project__view-link" :to="`/project/${slugOf(project)}/tasks`">
               <span class="material-symbols-outlined">task_alt</span>
               List
             </RouterLink>
@@ -163,7 +163,7 @@ import type { Project } from '@/modules/projects/types'
 import type { Task, TaskFormPayload } from '@/modules/tasks/types'
 
 const route = useRoute()
-const { projects, fetchProjects } = useProjects()
+const { projects, fetchProjects, slugOf, findBySlug } = useProjects()
 const { tasks, loading, error, fetchTasks, createTask, updateTask, deleteTask, updateStatus } =
   useTasks()
 
@@ -173,14 +173,11 @@ const editingTask = ref<Task | null>(null)
 
 const CIRCUMFERENCE = 2 * Math.PI * 48
 
-function toSlug(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, '-')
-}
 
 onMounted(async () => {
   if (projects.value.length === 0) await fetchProjects()
   const slug = route.params.slug as string
-  project.value = projects.value.find((p) => toSlug(p.name) === slug) ?? null
+  project.value = findBySlug(slug)
   if (project.value) await fetchTasks(project.value.id)
 })
 
