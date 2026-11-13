@@ -3,11 +3,7 @@
     <nav class="nav" aria-label="Main">
       <div class="nav__top">
         <div class="nav__logo">
-          <span class="nav__logo-mark" aria-hidden="true">
-            <span class="nav__logo-core"></span>
-          </span>
-          <span class="nav__logo-text">ODEEN</span>
-          <span class="nav__logo-dot" aria-hidden="true"></span>
+          <OdeenLogo class="nav__logo-mark" />
         </div>
 
         <ul class="nav__links">
@@ -72,6 +68,7 @@
 </template>
 
 <script setup lang="ts">
+import OdeenLogo from '@/components/OdeenLogo.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/modules/auth/composables/useAuth'
 import IntentionsBar from '@/modules/assistant/components/IntentionsBar.vue'
@@ -153,36 +150,7 @@ async function confirmSignOut(): Promise<void> {
 }
 
 .nav__logo-mark {
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--color-mint);
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nav__logo-core {
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-full);
-  background-color: var(--color-accent-strong);
-}
-
-.nav__logo-text {
-  font-family: var(--font-display);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.02em;
-  color: var(--color-primary);
-}
-
-.nav__logo-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background-color: var(--color-accent);
-  box-shadow: var(--shadow-glow);
+  height: 30px;
 }
 
 .nav__links {

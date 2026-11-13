@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<title>ODEEN</title>
+<rect width="256" height="256" rx="56" fill="#0f1a14"/>
+<g transform="translate(40,40) scale(0.6875)"><defs><clipPath id="h-r2-dagaz-ecf2ed"><path clip-rule="evenodd" d="M0,0 H256 V256 H0 Z M98,128 A30,30 0 1 1 158,128 A30,30 0 1 1 98,128 Z"/></clipPath></defs>
+<g clip-path="url(#h-r2-dagaz-ecf2ed)"><path fill="#ecf2ed" fill-rule="nonzero" d="M36.0,40.0 L70.0,40.0 L70.0,216.0 L36.0,216.0 ZM186.0,40.0 L220.0,40.0 L220.0,216.0 L186.0,216.0 ZM66.0,40.0 L111.0,40.0 L190.0,216.0 L145.0,216.0 ZM111.0,216.0 L66.0,216.0 L145.0,40.0 L190.0,40.0 Z"/></g>
+<path fill="#00e676" fill-rule="nonzero" d="M115,128 A13,13 0 1 1 141,128 A13,13 0 1 1 115,128 Z"/></g>
+</svg>

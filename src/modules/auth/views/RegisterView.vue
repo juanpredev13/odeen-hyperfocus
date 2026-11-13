@@ -1,7 +1,7 @@
 <template>
   <div class="auth-layout">
     <div class="auth-card">
-      <h1 class="auth-card__title">ODEEN</h1>
+      <h1 class="auth-card__title"><OdeenLogo class="auth-card__logo" /></h1>
       <p class="auth-card__subtitle">Create your workspace</p>
 
       <form class="auth-form" @submit.prevent="handleSubmit">
@@ -54,6 +54,7 @@
 </template>
 
 <script setup lang="ts">
+import OdeenLogo from '@/components/OdeenLogo.vue'
 import { ref } from 'vue'
 import { useAuth } from '@/modules/auth/composables/useAuth'
 
@@ -97,6 +98,11 @@ async function handleSubmit(): Promise<void> {
   letter-spacing: var(--tracking-tight);
   color: var(--color-primary);
   margin-bottom: var(--space-xs);
+}
+
+.auth-card__logo {
+  height: 36px;
+  margin-bottom: var(--space-sm);
 }
 
 .auth-card__subtitle {
