@@ -1,11 +1,22 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import * as projectsService from '@/modules/projects/services/projects.service'
 import { useActiveProject } from '@/store/activeProject'
+import { buildProjectSlugs, toSlug } from '@/modules/projects/composables/projectSlugs'
 import type { Project, ProjectSharing, ProjectsError } from '@/modules/projects/types'
 
 const projects = ref<Project[]>([])
 const loading = ref(false)
 const error = ref<ProjectsError | null>(null)
+const slugs = computed(() => buildProjectSlugs(projects.value))
+
+/** URL slug of a project, unique among the projects the user can see. */
+function slugOf(project: Project): string {
+  return slugs.value.get(project.id) ?? toSlug(project.name)
+}
+
+function findBySlug(slug: string): Project | null {
+  return projects.value.find((p) => slugOf(p) === slug) ?? null
+}
 
 export function useProjects() {
   const { activeProject, setActiveProject, clearActiveProject } = useActiveProject()
@@ -109,5 +120,7 @@ export function useProjects() {
     updateProject,
     deleteProject,
     selectProject,
+    slugOf,
+    findBySlug,
   }
 }

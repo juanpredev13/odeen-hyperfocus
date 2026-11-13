@@ -137,8 +137,17 @@ interface ProjectGroup {
 }
 
 const router = useRouter()
-const { projects, activeProject, loading, error, fetchProjects, createProject, updateProject, deleteProject } =
-  useProjects()
+const {
+  projects,
+  activeProject,
+  loading,
+  error,
+  fetchProjects,
+  createProject,
+  updateProject,
+  deleteProject,
+  slugOf,
+} = useProjects()
 const {
   organizations,
   error: sharingError,
@@ -179,12 +188,8 @@ const groups = computed<ProjectGroup[]>(() => {
   return [...personalGroup, ...shared]
 })
 
-function toSlug(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, '-')
-}
-
 function selectProject(project: Project): void {
-  router.push({ name: 'project', params: { slug: toSlug(project.name) } })
+  router.push({ name: 'project', params: { slug: slugOf(project) } })
 }
 
 function personalSharing(): ProjectSharing {
