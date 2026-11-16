@@ -19,6 +19,27 @@ Inside this repo Claude Code picks the server up from `.mcp.json`. To use it fro
 claude mcp add --scope user odeen -- node /absolute/path/to/odeen-hyperfocus/mcp/dist/server.js
 ```
 
+### Claude desktop app (Cowork)
+
+The desktop app (macOS and Windows) runs local stdio servers too. Clone the repo on that machine, run `pnpm install` and `pnpm mcp:login`, then add the server to `claude_desktop_config.json` (Settings → Developer → Edit Config):
+
+```json
+{
+  "mcpServers": {
+    "odeen": {
+      "command": "node",
+      "args": ["/absolute/path/to/odeen-hyperfocus/mcp/dist/server.js"]
+    }
+  }
+}
+```
+
+Restart the app. The tools then show up in chats and in Cowork.
+
+### Claude mobile apps (iOS, Android)
+
+Not supported. The mobile apps only reach remote connectors (MCP over HTTPS with OAuth), and this server is local stdio. Using it from a phone would need a hosted HTTP transport.
+
 After changing anything under `mcp/` or in the services it uses, run `pnpm mcp:build` and restart the server (`/mcp` in Claude Code).
 
 ## Which Supabase
