@@ -103,7 +103,9 @@ export function upcomingBlocks(
   nowMinute: number,
   leadMinutes: number,
 ): ScheduleBlock[] {
-  return blocks.filter((b) => nowMinute >= b.start_minute - leadMinutes && nowMinute < b.start_minute)
+  return blocks.filter(
+    (b) => nowMinute >= b.start_minute - leadMinutes && nowMinute < b.start_minute,
+  )
 }
 
 /** ISO date `days` after `date` (calendar math, no timezone). */

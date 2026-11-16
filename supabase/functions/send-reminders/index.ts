@@ -61,9 +61,13 @@ function env(name: string): string {
   return value
 }
 
-const supabase: SupabaseClient = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), {
-  auth: { persistSession: false },
-})
+const supabase: SupabaseClient = createClient(
+  env('SUPABASE_URL'),
+  env('SUPABASE_SERVICE_ROLE_KEY'),
+  {
+    auth: { persistSession: false },
+  },
+)
 
 webpush.setVapidDetails(env('VAPID_SUBJECT'), env('VAPID_PUBLIC_KEY'), env('VAPID_PRIVATE_KEY'))
 
@@ -167,7 +171,8 @@ async function scheduleReminders(
   ])
 
   if (blocksResult.error) throw new Error(`schedule_blocks: ${blocksResult.error.message}`)
-  if (overrideResult.error) throw new Error(`schedule_day_overrides: ${overrideResult.error.message}`)
+  if (overrideResult.error)
+    throw new Error(`schedule_day_overrides: ${overrideResult.error.message}`)
   if (segmentsResult.error) throw new Error(`schedule_segments: ${segmentsResult.error.message}`)
 
   const segmentName = new Map((segmentsResult.data ?? []).map((s) => [s.id, s.name as string]))
@@ -277,8 +282,46 @@ async function remindUser(
   return sent
 }
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+/**
+ * "Send test" from the Reminders card: a signed-in user pushes one
+ * notification to their own devices. Only their own subscriptions.
+ */
+async function sendTest(req: Request): Promise<Response> {
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? ''
+  const { data, error } = await supabase.auth.getUser(token)
+  if (error || !data.user) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401, headers: CORS_HEADERS })
+  }
+
+  const { data: subs, error: subsError } = await supabase
+    .from('push_subscriptions')
+    .select('id, user_id, endpoint, p256dh, auth')
+    .eq('user_id', data.user.id)
+  if (subsError) {
+    return Response.json({ error: subsError.message }, { status: 500, headers: CORS_HEADERS })
+  }
+
+  const sent = await send((subs ?? []) as Subscription[], {
+    title: 'ODEEN test',
+    body: 'Push reminders work on this device.',
+    url: '/assistant',
+    tag: `test-${Date.now()}`,
+  })
+  return Response.json({ devices: subs?.length ?? 0, sent }, { headers: CORS_HEADERS })
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
-  if (req.headers.get('x-cron-secret') !== env('REMINDERS_CRON_SECRET')) {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS })
+
+  const cronSecret = req.headers.get('x-cron-secret')
+  if (cronSecret === null) return sendTest(req)
+  if (cronSecret !== env('REMINDERS_CRON_SECRET')) {
     return new Response('Unauthorized', { status: 401 })
   }
 

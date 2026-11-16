@@ -1,7 +1,9 @@
 <template>
   <section class="reminders">
     <header class="reminders__header">
-      <span class="material-symbols-outlined reminders__icon" aria-hidden="true">notifications</span>
+      <span class="material-symbols-outlined reminders__icon" aria-hidden="true"
+        >notifications</span
+      >
       <h2 class="reminders__title">Reminders</h2>
       <span v-if="status === 'on'" class="reminders__live">On this device</span>
     </header>
@@ -18,16 +20,16 @@
       >
         Turn on notifications
       </button>
-      <button
-        v-else
-        class="reminders__button"
-        type="button"
-        :disabled="loading"
-        @click="disable"
-      >
-        Turn off on this device
-      </button>
+      <template v-else>
+        <button class="reminders__button" type="button" :disabled="testing" @click="test">
+          Send test
+        </button>
+        <button class="reminders__button" type="button" :disabled="loading" @click="disable">
+          Turn off on this device
+        </button>
+      </template>
     </div>
+    <p v-if="testResult" class="reminders__note">{{ testResult }}</p>
 
     <ul v-if="status === 'on'" class="reminders__list">
       <li class="reminders__item">
@@ -111,15 +113,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   LEAD_MINUTE_OPTIONS,
   useNotifications,
 } from '@/modules/assistant/composables/useNotifications'
 import type { ScheduleLeadMinutes } from '@/modules/assistant/types'
 
-const { status, loading, error, load, save, enable, disable, effective, isInstalledApp } =
+const { status, loading, error, load, save, enable, disable, sendTest, effective, isInstalledApp } =
   useNotifications()
+
+const testing = ref(false)
+const testResult = ref<string | null>(null)
+
+async function test(): Promise<void> {
+  testing.value = true
+  testResult.value = await sendTest()
+  testing.value = false
+}
 
 const current = computed(() => effective())
 
@@ -142,7 +153,10 @@ function checked(event: Event): boolean {
   return (event.target as HTMLInputElement).checked
 }
 
-function saveTime(field: 'intentions_time' | 'plan_tomorrow_time' | 'progress_time', event: Event): void {
+function saveTime(
+  field: 'intentions_time' | 'plan_tomorrow_time' | 'progress_time',
+  event: Event,
+): void {
   const value = (event.target as HTMLInputElement).value
   if (value) void save({ [field]: value })
 }
@@ -201,6 +215,8 @@ onMounted(load)
 
 .reminders__actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
 }
 
 .reminders__button {

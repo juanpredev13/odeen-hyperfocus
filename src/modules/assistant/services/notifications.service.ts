@@ -157,3 +157,16 @@ export async function saveNotificationSettings(
 
   return { data: data as NotificationSettings, error: null }
 }
+
+/** Pushes one test notification to every device of the signed-in user. */
+export async function sendTestPush(): Promise<AssistantResult<{ devices: number; sent: number }>> {
+  const { data, error } = await supabase.functions.invoke<{ devices: number; sent: number }>(
+    'send-reminders',
+    { body: { test: true } },
+  )
+
+  if (error) return { data: null, error: { message: error.message } }
+  if (!data) return { data: null, error: { message: 'No response from the reminders service' } }
+
+  return { data, error: null }
+}
