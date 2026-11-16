@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import router from '@/router'
 import App from '@/app/App.vue'
 import { initTheme } from '@/composables/useTheme'
+import { registerServiceWorker } from '@/services/serviceWorker'
 
 import '@/styles/variables.css'
 import '@/styles/reset.css'
@@ -11,3 +12,5 @@ import '@/styles/base.css'
 initTheme()
 
 createApp(App).use(router).mount('#app')
+
+void registerServiceWorker()

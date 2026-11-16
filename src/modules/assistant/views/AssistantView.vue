@@ -34,6 +34,7 @@
         </RouterLink>
       </TodayCard>
       <CheckinCard />
+      <RemindersCard />
     </div>
 
     <section class="assistant__section">
@@ -61,6 +62,7 @@ import TodayHero from '@/modules/assistant/components/TodayHero.vue'
 import IntentionSequence from '@/modules/assistant/components/IntentionSequence.vue'
 import IntentionsPlanner from '@/modules/assistant/components/IntentionsPlanner.vue'
 import CheckinCard from '@/modules/assistant/components/CheckinCard.vue'
+import RemindersCard from '@/modules/assistant/components/RemindersCard.vue'
 import ConnectionCard from '@/modules/assistant/components/ConnectionCard.vue'
 import {
   PROVIDERS,

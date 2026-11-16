@@ -428,3 +428,7 @@ additional_redirect_urls = ["https://odeen-hyperfocus.vercel.app/**"]
 [remotes.production.auth.email]
 max_frequency = "1m0s"
 otp_length = 8
+
+# Called by pg_cron with a shared secret header, not a user JWT (#113).
+[functions.send-reminders]
+verify_jwt = false

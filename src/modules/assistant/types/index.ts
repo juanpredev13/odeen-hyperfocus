@@ -173,3 +173,31 @@ export interface DayOverride {
   date: string
   created_at: string
 }
+
+// ── Push reminders (#113) ──
+
+export type ScheduleLeadMinutes = 5 | 10 | 15 | 30
+
+export interface NotificationSettings {
+  user_id: string
+  timezone: string
+  intentions_enabled: boolean
+  /** Postgres `time`, e.g. '08:00:00'. */
+  intentions_time: string
+  progress_enabled: boolean
+  progress_time: string
+  schedule_enabled: boolean
+  schedule_lead_minutes: ScheduleLeadMinutes
+  updated_at: string
+}
+
+export type UpdateNotificationSettingsPayload = Partial<
+  Omit<NotificationSettings, 'user_id' | 'updated_at'>
+>
+
+/** Where push stands on this device. */
+export type PushStatus =
+  | 'unsupported' // no Push API (e.g. iOS Safari outside a home-screen app)
+  | 'denied' // the user blocked notifications for ODEEN
+  | 'off' // supported, not subscribed on this device
+  | 'on' // subscribed on this device
