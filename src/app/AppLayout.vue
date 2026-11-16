@@ -119,6 +119,7 @@ async function confirmSignOut(): Promise<void> {
 .app-layout {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
   overflow: hidden;
   background-color: var(--color-background);
