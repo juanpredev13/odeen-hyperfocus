@@ -130,7 +130,7 @@ export async function fetchNotificationSettings(): Promise<AssistantResult<Notif
 export async function saveNotificationSettings(
   payload: UpdateNotificationSettingsPayload,
 ): Promise<AssistantResult<NotificationSettings>> {
-  for (const time of [payload.intentions_time, payload.progress_time]) {
+  for (const time of [payload.intentions_time, payload.plan_tomorrow_time, payload.progress_time]) {
     if (time !== undefined && !TIME_PATTERN.test(time)) {
       return { data: null, error: { message: 'Times must be HH:MM' } }
     }

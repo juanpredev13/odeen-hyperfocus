@@ -184,6 +184,8 @@ export interface NotificationSettings {
   intentions_enabled: boolean
   /** Postgres `time`, e.g. '08:00:00'. */
   intentions_time: string
+  plan_tomorrow_enabled: boolean
+  plan_tomorrow_time: string
   progress_enabled: boolean
   progress_time: string
   schedule_enabled: boolean

@@ -106,6 +106,19 @@ export function upcomingBlocks(
   return blocks.filter((b) => nowMinute >= b.start_minute - leadMinutes && nowMinute < b.start_minute)
 }
 
+/** ISO date `days` after `date` (calendar math, no timezone). */
+export function addDays(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+export function planTomorrowMessage(written: number): string | null {
+  if (written >= 3) return null
+  if (written === 0) return "Close the day: set tomorrow's 3 intentions."
+  return `Tomorrow has ${written} of 3 intentions. Finish the plan before you stop.`
+}
+
 export function intentionsMessage(written: number): string | null {
   if (written >= 3) return null
   if (written === 0) return 'Set your 3 intentions for today.'

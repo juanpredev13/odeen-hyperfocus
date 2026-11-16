@@ -52,6 +52,24 @@
         <label class="reminders__toggle">
           <input
             type="checkbox"
+            :checked="current.plan_tomorrow_enabled"
+            @change="save({ plan_tomorrow_enabled: checked($event) })"
+          />
+          Plan tomorrow
+        </label>
+        <input
+          class="reminders__field"
+          type="time"
+          aria-label="Plan tomorrow reminder time"
+          :value="current.plan_tomorrow_time"
+          :disabled="!current.plan_tomorrow_enabled"
+          @change="saveTime('plan_tomorrow_time', $event)"
+        />
+      </li>
+      <li class="reminders__item">
+        <label class="reminders__toggle">
+          <input
+            type="checkbox"
             :checked="current.progress_enabled"
             @change="save({ progress_enabled: checked($event) })"
           />
@@ -108,7 +126,7 @@ const current = computed(() => effective())
 const statusText = computed(() => {
   switch (status.value) {
     case 'on':
-      return 'Morning nudge for your 3 intentions, an evening project digest, and a heads-up before each schedule block.'
+      return 'A morning nudge for your 3 intentions, an afternoon one to plan tomorrow, an evening project digest, and a heads-up before each schedule block.'
     case 'off':
       return 'Get reminders on this device, even when ODEEN is closed.'
     case 'denied':
@@ -124,7 +142,7 @@ function checked(event: Event): boolean {
   return (event.target as HTMLInputElement).checked
 }
 
-function saveTime(field: 'intentions_time' | 'progress_time', event: Event): void {
+function saveTime(field: 'intentions_time' | 'plan_tomorrow_time' | 'progress_time', event: Event): void {
   const value = (event.target as HTMLInputElement).value
   if (value) void save({ [field]: value })
 }

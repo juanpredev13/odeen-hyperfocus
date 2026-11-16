@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  addDays,
   blocksForDay,
   formatMinute,
   intentionsMessage,
   isDailyDue,
   localNow,
+  planTomorrowMessage,
   progressMessage,
   timeToMinute,
   upcomingBlocks,
@@ -60,6 +62,13 @@ describe('time helpers', () => {
   })
 })
 
+describe('addDays', () => {
+  it('crosses month and year ends', () => {
+    expect(addDays('2026-11-30', 1)).toBe('2026-12-01')
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01')
+  })
+})
+
 describe('schedule', () => {
   const template = block({ id: 't', day_of_week: 1 })
   const override = block({ id: 'o', date: '2026-11-16' })
@@ -82,6 +91,12 @@ describe('messages', () => {
     expect(intentionsMessage(0)).toBe('Set your 3 intentions for today.')
     expect(intentionsMessage(2)).toBe('You have 2 of 3. One more to go.')
     expect(intentionsMessage(3)).toBeNull()
+  })
+
+  it('nudges to plan tomorrow until three exist', () => {
+    expect(planTomorrowMessage(0)).toBe("Close the day: set tomorrow's 3 intentions.")
+    expect(planTomorrowMessage(1)).toMatch(/1 of 3/)
+    expect(planTomorrowMessage(3)).toBeNull()
   })
 
   it('lists open projects, fewest left first', () => {

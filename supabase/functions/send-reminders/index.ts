@@ -10,11 +10,13 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.96.0'
 import webpush from 'npm:web-push@3.6.7'
 import {
+  addDays,
   blocksForDay,
   formatMinute,
   intentionsMessage,
   isDailyDue,
   localNow,
+  planTomorrowMessage,
   progressMessage,
   timeToMinute,
   upcomingBlocks,
@@ -23,13 +25,15 @@ import {
   type ScheduleBlock,
 } from './reminders.ts'
 
-type Kind = 'intentions' | 'progress' | 'schedule'
+type Kind = 'intentions' | 'plan_tomorrow' | 'progress' | 'schedule'
 
 interface NotificationSettings {
   user_id: string
   timezone: string
   intentions_enabled: boolean
   intentions_time: string
+  plan_tomorrow_enabled: boolean
+  plan_tomorrow_time: string
   progress_enabled: boolean
   progress_time: string
   schedule_enabled: boolean
@@ -89,16 +93,27 @@ async function alreadySent(userId: string, kind: Kind, refKey: string): Promise<
   return (count ?? 0) > 0
 }
 
-async function intentionsReminder(userId: string, now: LocalNow): Promise<PushPayload | null> {
+async function countDayIntentions(userId: string, date: string): Promise<number> {
   const { count, error } = await supabase
     .from('intentions')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('scope', 'day')
-    .eq('date', now.date)
+    .eq('date', date)
 
   if (error) throw new Error(`intentions: ${error.message}`)
-  const body = intentionsMessage(count ?? 0)
+  return count ?? 0
+}
+
+async function planTomorrowReminder(userId: string, now: LocalNow): Promise<PushPayload | null> {
+  const tomorrow = addDays(now.date, 1)
+  const body = planTomorrowMessage(await countDayIntentions(userId, tomorrow))
+  if (!body) return null
+  return { title: 'Plan tomorrow', body, url: '/assistant/close', tag: `plan-tomorrow-${now.date}` }
+}
+
+async function intentionsReminder(userId: string, now: LocalNow): Promise<PushPayload | null> {
+  const body = intentionsMessage(await countDayIntentions(userId, now.date))
   if (!body) return null
   return { title: 'Your 3 intentions', body, url: '/assistant', tag: `intentions-${now.date}` }
 }
@@ -221,6 +236,17 @@ async function remindUser(
   ) {
     const payload = await intentionsReminder(userId, now)
     if (payload && (await claim(userId, 'intentions', now.date))) {
+      sent += await send(subscriptions, payload)
+    }
+  }
+
+  if (
+    settings.plan_tomorrow_enabled &&
+    isDailyDue(now.minute, timeToMinute(settings.plan_tomorrow_time)) &&
+    !(await alreadySent(userId, 'plan_tomorrow', now.date))
+  ) {
+    const payload = await planTomorrowReminder(userId, now)
+    if (payload && (await claim(userId, 'plan_tomorrow', now.date))) {
       sent += await send(subscriptions, payload)
     }
   }
