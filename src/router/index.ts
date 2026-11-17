@@ -33,6 +33,13 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true, allowAuthenticated: true },
   },
 
+  // OAuth consent for the remote MCP server (#99). Needs a session, no nav.
+  {
+    path: '/oauth/consent',
+    name: 'oauth-consent',
+    component: () => import('@/modules/auth/views/OAuthConsentView.vue'),
+  },
+
   // Focus mode (full-screen, no nav)
   {
     path: '/focus/:taskId',
@@ -130,7 +137,10 @@ router.beforeEach(async (to) => {
   const isPublicRoute = to.meta.public === true
 
   if (!isAuthenticated && !isPublicRoute) {
-    return { name: 'login' }
+    // Come back here after signing in (e.g. the OAuth consent link).
+    return to.fullPath === '/'
+      ? { name: 'login' }
+      : { name: 'login', query: { redirect: to.fullPath } }
   }
 
   if (isAuthenticated && isPublicRoute && to.meta.allowAuthenticated !== true) {

@@ -362,13 +362,15 @@ enabled = false
 # domain = "example.clerk.accounts.dev"
 
 # OAuth server configuration
+# OAuth 2.1 server for the remote MCP server (#99): Claude registers itself
+# (dynamic registration) and users approve it on /oauth/consent.
 [auth.oauth_server]
 # Enable OAuth server functionality
-enabled = false
+enabled = true
 # Path for OAuth consent flow UI
 authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
-allow_dynamic_registration = false
+allow_dynamic_registration = true
 
 [edge_runtime]
 enabled = true
@@ -431,4 +433,9 @@ otp_length = 8
 
 # Called by pg_cron with a shared secret header, not a user JWT (#113).
 [functions.send-reminders]
+verify_jwt = false
+
+# Remote MCP server (#99): verifies OAuth access tokens itself and must answer
+# unauthenticated discovery requests, so the gateway JWT check is off.
+[functions.mcp]
 verify_jwt = false

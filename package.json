@@ -12,7 +12,9 @@
     "test": "vitest run",
     "mcp:build": "vite build --config mcp/vite.config.ts",
     "mcp:login": "pnpm --silent mcp:build && node mcp/dist/login.js",
-    "mcp:logout": "node mcp/dist/login.js logout"
+    "mcp:logout": "node mcp/dist/login.js logout",
+    "mcp:build:remote": "vite build --config mcp/vite.remote.config.ts",
+    "mcp:deploy": "pnpm mcp:build:remote && npx supabase functions deploy mcp --no-verify-jwt --remote=jpryskxhhoxphxfsbbux"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",

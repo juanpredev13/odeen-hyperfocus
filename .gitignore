@@ -44,3 +44,6 @@ src-tauri/gen/schemas/
 /stitch
 .playwright-mcp/
 .vercel
+
+# Remote MCP bundle (built by pnpm mcp:build:remote)
+supabase/functions/mcp/dist/

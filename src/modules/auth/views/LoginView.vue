@@ -20,7 +20,9 @@
         <div class="auth-form__field">
           <div class="auth-form__label-row">
             <label class="auth-form__label" for="password">Password</label>
-            <RouterLink class="auth-form__forgot" to="/forgot-password">Forgot password?</RouterLink>
+            <RouterLink class="auth-form__forgot" to="/forgot-password"
+              >Forgot password?</RouterLink
+            >
           </div>
           <input
             id="password"
@@ -50,10 +52,19 @@
 <script setup lang="ts">
 import OdeenLogo from '@/components/OdeenLogo.vue'
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/modules/auth/composables/useAuth'
 
 const router = useRouter()
+const route = useRoute()
+
+/** Only same-app paths: never an absolute or protocol-relative URL. */
+function redirectTarget(): string {
+  const redirect = route.query.redirect
+  return typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+    ? redirect
+    : '/'
+}
 const { loading, error, signIn } = useAuth()
 
 const email = ref('')
@@ -62,7 +73,7 @@ const password = ref('')
 async function handleSubmit(): Promise<void> {
   const success = await signIn(email.value, password.value)
   if (success) {
-    await router.push('/')
+    await router.push(redirectTarget())
   }
 }
 </script>
