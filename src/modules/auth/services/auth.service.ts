@@ -1,5 +1,5 @@
 import { supabase } from '@/services/supabase'
-import type { AuthResult, AuthUser } from '@/modules/auth/types'
+import type { AuthResult, AuthUser, OAuthAuthorizationState } from '@/modules/auth/types'
 import type { AuthChangeEvent, Session, Subscription } from '@supabase/supabase-js'
 
 export async function signUp(email: string, password: string): Promise<AuthResult<AuthUser>> {
@@ -45,7 +45,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function requestPasswordReset(email: string): Promise<AuthResult<null>> {
   const address = email.trim()
-  if (!EMAIL_PATTERN.test(address)) return { data: null, error: { message: 'Enter a valid email address' } }
+  if (!EMAIL_PATTERN.test(address))
+    return { data: null, error: { message: 'Enter a valid email address' } }
 
   // The recovery link returns to /reset-password on this origin, which must be in the
   // Supabase Auth redirect allow-list (supabase/config.toml).
@@ -80,9 +81,9 @@ export async function getSession(): Promise<AuthResult<AuthUser>> {
   }
 }
 
-export function onAuthStateChange(
-  callback: (user: AuthUser | null) => void,
-): { subscription: Subscription } {
+export function onAuthStateChange(callback: (user: AuthUser | null) => void): {
+  subscription: Subscription
+} {
   const { data } = supabase.auth.onAuthStateChange(
     (_event: AuthChangeEvent, session: Session | null) => {
       if (session?.user) {
@@ -94,4 +95,53 @@ export function onAuthStateChange(
   )
 
   return data
+}
+
+// ── OAuth 2.1 consent (#99) ─────────────────────────────────────────────
+// Supabase Auth is the authorization server for the remote MCP server. It sends
+// the user to /oauth/consent?authorization_id=… to approve or deny a client.
+
+export async function getOAuthAuthorization(
+  authorizationId: string,
+): Promise<AuthResult<OAuthAuthorizationState>> {
+  if (!authorizationId) return { data: null, error: { message: 'Missing authorization request' } }
+
+  const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId)
+  if (error) return { data: null, error: { message: error.message } }
+  if (!data) return { data: null, error: { message: 'Authorization request not found' } }
+
+  if (!('authorization_id' in data)) {
+    return { data: { kind: 'redirect', url: data.redirect_url }, error: null }
+  }
+
+  return {
+    data: {
+      kind: 'consent',
+      request: {
+        authorizationId: data.authorization_id,
+        clientName: data.client.name || 'An application',
+        clientUri: data.client.uri || null,
+        redirectUri: data.redirect_uri,
+        scopes: data.scope.split(' ').filter(Boolean),
+        userEmail: data.user.email,
+      },
+    },
+    error: null,
+  }
+}
+
+/** Approves or denies the request; resolves the URL to send the browser back to. */
+export async function decideOAuthAuthorization(
+  authorizationId: string,
+  approve: boolean,
+): Promise<AuthResult<string>> {
+  const options = { skipBrowserRedirect: true }
+  const { data, error } = approve
+    ? await supabase.auth.oauth.approveAuthorization(authorizationId, options)
+    : await supabase.auth.oauth.denyAuthorization(authorizationId, options)
+
+  if (error) return { data: null, error: { message: error.message } }
+  if (!data?.redirect_url) return { data: null, error: { message: 'No redirect from Auth' } }
+
+  return { data: data.redirect_url, error: null }
 }

@@ -36,9 +36,15 @@ The desktop app (macOS and Windows) runs local stdio servers too. Clone the repo
 
 Restart the app. The tools then show up in chats and in Cowork.
 
-### Claude mobile apps (iOS, Android)
+### Remote server (claude.ai, mobile apps, cloud sessions)
 
-Not supported. The mobile apps only reach remote connectors (MCP over HTTPS with OAuth), and this server is local stdio. Using it from a phone would need a hosted HTTP transport.
+The same tools also run as a remote MCP server, a Supabase Edge Function at
+`https://jpryskxhhoxphxfsbbux.supabase.co/functions/v1/mcp` (Streamable HTTP, stateless). It works with the laptop off.
+
+- **Auth:** Supabase Auth is the OAuth 2.1 authorization server. Claude registers itself (dynamic client registration), you sign in to ODEEN and approve it on `/oauth/consent`, and every tool call runs with your access token, so RLS applies. No service-role key.
+- **Connect:** claude.ai → Settings → Connectors → Add custom connector, paste the URL above. It is then available in the Claude apps and in Claude Code cloud sessions.
+- **Build and deploy:** `pnpm mcp:deploy`. It bundles `mcp/remote/handler.ts` (with `@/services/supabase` aliased to the request-scoped client in `mcp/remote/supabase.ts`) into `supabase/functions/mcp/dist/` and deploys the function.
+- **Project setup (once):** in the Supabase dashboard, Authentication → OAuth Server: enable the OAuth 2.1 server, set the authorization path to `/oauth/consent` and allow dynamic client registration. The Site URL must be the deployed app.
 
 After changing anything under `mcp/` or in the services it uses, run `pnpm mcp:build` and restart the server (`/mcp` in Claude Code).
 
