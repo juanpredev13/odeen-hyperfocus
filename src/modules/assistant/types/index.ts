@@ -67,7 +67,7 @@ export type CreateIntentionPayload = Pick<
 >
 
 export type UpdateIntentionPayload = Partial<
-  Pick<Intention, 'text' | 'when_text' | 'where_text' | 'first_action' | 'done'>
+  Pick<Intention, 'text' | 'task_id' | 'when_text' | 'where_text' | 'first_action' | 'done'>
 > & { id: string }
 
 export type CaptureKind = 'distraction' | 'open_loop' | 'idea' | 'problem' | 'worry' | 'waiting_for'

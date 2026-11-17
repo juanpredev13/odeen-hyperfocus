@@ -61,22 +61,24 @@ Sessions are stored per project, so run `pnpm mcp:login` once for each.
 
 ## Tools
 
-| Tool              | What it does                                                       |
-| ----------------- | ------------------------------------------------------------------ |
-| `list_projects`   | Your projects                                                      |
-| `create_project`  | New project                                                        |
-| `list_tasks`      | Tasks, optionally by project and status                            |
-| `get_task`        | One task with its description and links                            |
-| `create_task`     | New task, optionally with links attached                           |
-| `update_task`     | Edit title, description, energy, impact, attractiveness, intention |
-| `move_task`       | Change status; at most 3 tasks in `doing` per project              |
-| `link_task`       | Attach a GitHub issue or an Obsidian note                          |
-| `unlink_task`     | Remove a link                                                      |
-| `add_capture`     | Drop something into the capture inbox                              |
-| `list_captures`   | The inbox (or converted / archived captures)                       |
-| `list_intentions` | Day, personal and week intentions for a date                       |
+| Tool                 | What it does                                                       |
+| -------------------- | ------------------------------------------------------------------ |
+| `list_projects`      | Your projects                                                      |
+| `create_project`     | New project                                                        |
+| `list_tasks`         | Tasks, optionally by project and status                            |
+| `get_task`           | One task with its description and links                            |
+| `create_task`        | New task, optionally with links attached                           |
+| `update_task`        | Edit title, description, energy, impact, attractiveness, intention |
+| `move_task`          | Change status; at most 3 tasks in `doing` per project              |
+| `link_task`          | Attach a GitHub issue or an Obsidian note                          |
+| `unlink_task`        | Remove a link                                                      |
+| `add_capture`        | Drop something into the capture inbox                              |
+| `list_captures`      | The inbox (or converted / archived captures)                       |
+| `list_intentions`    | Day, personal and week intentions for a date                       |
+| `set_intention`      | Set or replace one of the 3 intentions for a date and scope        |
+| `complete_intention` | Mark an intention done or not done                                 |
 
-Nothing here deletes tasks, projects or captures.
+Nothing here deletes tasks, projects, captures or intentions. Dates default to today in the timezone saved with the reminder settings.
 
 Obsidian notes are linked, not written: Claude Code writes the note with its Obsidian tools, then calls `link_task` with `Vault/path/to/note`.
 
