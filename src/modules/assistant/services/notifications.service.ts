@@ -1,15 +1,14 @@
 import { supabase } from '@/services/supabase'
 import { getServiceWorker } from '@/services/serviceWorker'
-import type {
-  AssistantResult,
-  NotificationSettings,
-  PushStatus,
-  UpdateNotificationSettingsPayload,
-} from '@/modules/assistant/types'
+import type { AssistantResult, PushStatus } from '@/modules/assistant/types'
+
+// Settings live in their own service (no browser APIs) so the MCP server can use them.
+export {
+  fetchNotificationSettings,
+  saveNotificationSettings,
+} from '@/modules/assistant/services/notificationSettings.service'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
-const LEAD_MINUTES = [5, 10, 15, 30]
-const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/
 
 /** Push needs a service worker, the Push API and a configured VAPID key. */
 export function isPushSupported(): boolean {
@@ -116,46 +115,6 @@ export async function disablePush(): Promise<AssistantResult<PushStatus>> {
 
   await subscription.unsubscribe()
   return { data: 'off', error: null }
-}
-
-/** Returns `data: null` when the user has not saved notification settings yet. */
-export async function fetchNotificationSettings(): Promise<AssistantResult<NotificationSettings>> {
-  const { data, error } = await supabase.from('notification_settings').select('*').maybeSingle()
-
-  if (error) return { data: null, error: { message: error.message } }
-
-  return { data: data as NotificationSettings | null, error: null }
-}
-
-export async function saveNotificationSettings(
-  payload: UpdateNotificationSettingsPayload,
-): Promise<AssistantResult<NotificationSettings>> {
-  for (const time of [payload.intentions_time, payload.plan_tomorrow_time, payload.progress_time]) {
-    if (time !== undefined && !TIME_PATTERN.test(time)) {
-      return { data: null, error: { message: 'Times must be HH:MM' } }
-    }
-  }
-  if (
-    payload.schedule_lead_minutes !== undefined &&
-    !LEAD_MINUTES.includes(payload.schedule_lead_minutes)
-  ) {
-    return { data: null, error: { message: 'Lead time must be 5, 10, 15 or 30 minutes' } }
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { data: null, error: { message: 'Not authenticated' } }
-
-  const { data, error } = await supabase
-    .from('notification_settings')
-    .upsert({ ...payload, user_id: user.id, updated_at: new Date().toISOString() })
-    .select()
-    .single()
-
-  if (error) return { data: null, error: { message: error.message } }
-
-  return { data: data as NotificationSettings, error: null }
 }
 
 /** Pushes one test notification to every device of the signed-in user. */
